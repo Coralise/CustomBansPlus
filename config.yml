@@ -1,0 +1,86 @@
+#SQL CONFIGURATION - You may setup your Sql Database here.
+
+enable-sql: false
+
+host: 
+port: 
+user: 
+pass: 
+
+
+# Cache Configurations
+
+# Data saves when N number of new players join.
+player-save-cache: 100
+
+# Sends a notif message to admins when cache is being stored.
+notify-cache-save: False
+
+# ENCLOSE MESSAGES IN QUOTATIONS
+
+# Formats: %staff% %duration% %reason% %unban-date% %player% %timeleft% /n
+
+tempban-page: "&c&lYou have been banned!/n/n&f You have been banned by &e&l%staff%&f for &e&l%duration% /n&f for the reason: /n &c%reason% /n/n&f Time remaining: %timeleft%"
+
+permban-page: "&c&lYou have been banned!/n/n&f You have been permanently banned by &e&l%staff% /n&f for the reason: /n &c%reason%"
+
+kick-page: "&c&lYou have been kicked!/n/n&f You have been kicked by &e&l%staff% /n&f for the reason: /n &c%reason%"
+
+
+
+tempban-announcer: "&c&l%player%&f has been banned by &e&l%staff%&f for &c&l%duration%&f for: &c%reason%"
+
+ipban-announcer: "&c&l%player%&f has been ip banned by &e&l%staff%&f for &c&l%duration%&f for: &c%reason%"
+
+kick-announcer: "&c&l%player%&f has been kicked by &e&l%staff%&f for: &c%reason%"
+
+warn-announcer: "&c&l%player%&f has been warned by &e&l%staff%&f for: &c%reason%"
+
+mute-announcer: "&c&l%player%&f has been muted by &e&l%staff%&f for &c&l%duration%&f for: &c%reason%"
+
+default-reason: Struck by the Hammer!
+
+default-mute-reason: The Mute Mallet has spoken!
+
+
+
+# NOTE: As of this version, all options below this message are not yet available in the GUI Menu in-game. Will be added in future updates.
+
+permban-announcer: "&c&l%player%&f has been &c&lPermanently Banned&f by &e&l%staff%&f for: &c%reason%"
+
+tempbanNoRsn-announcer: "&c&l%player%&f has been banned by &e&l%staff%&f for &c&l%duration%"
+
+permbanNoRsn-announcer: "&c&l%player%&f has been &c&lPermanently Banned&f by &e&l%staff%&f"
+
+ipbanNoRsn-announcer: "&c&l%player%&f has been ip banned by &e&l%staff%&f for &c&l%duration%"
+
+kickNoRsn-announcer: "&c&l%player%&f has been kicked by &e&l%staff%"
+
+warnNoRsn-announcer: "&c&l%player%&f has been warned by &e&l%staff%"
+
+muteNoRsn-announcer: "&c&l%player%&f has been muted by &e&l%staff%&f for &c&l%duration%"
+
+unban-announcer: "&e&l%staff%&f unbanned &c&l%player%."
+
+unmute-announcer: "&e&l%staff%&f unmuted &c&l%player%."
+
+default-warn-reason: You have been warned!
+
+muted-player-message: "§cYou are muted!"
+
+# Set enable-warn-titles to true if you want titles to appear on your warns.
+enable-warn-titles: true
+warn-title: "§c§lYou have been warned!"
+
+# Set custom-subtitle to true if you want custom warn-subtitles.
+# Set to true if you want the reason as the subtitle.
+custom-subtitle: false
+warn-subtitle: "§fYou've been warned! Check your chat."
+
+# Set to true if you want to use punishments without reason, and false if you want to use the default reasons if reason is blank.
+toggle-no-reason: false
+
+# Set to true if you want op players to receive plugin update notifications.
+toggle-update-notifs: true
+# Set intervals of when to check for updates. Follows the same duration patterns (Xs, Xm, Xh, Xd).
+update-interval: 3h

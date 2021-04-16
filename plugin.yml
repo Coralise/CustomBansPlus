@@ -1,0 +1,51 @@
+name: CustomBansPlus
+version: 3.1.3
+main: me.coralise.custombansplus.CustomBansPlus
+api-version: 1.16
+author: Coralise
+website: https://www.spigotmc.org/resources/custom-bans-plus-fully-customizable-ban-manager.89075/
+prefix: "CBP"
+commands:
+    severities:
+        aliases: [sev, sevs]
+    custombansplus:
+        aliases: [cb, custombans]
+    alternateaccounts:
+        aliases: [alts]
+    cbpban:
+        aliases: [ban]
+    cbpunban:
+        aliases: [unban]
+    cbphistory:
+        aliases: [hist, history]
+    cbpkick:
+        aliases: [kick]
+    cbpipban:
+        aliases: [ipban]
+    cbpmute:
+        aliases: [mute]
+    cbpunmute:
+        aliases: [unmute]
+    cbpwarn:
+        aliases: [warn]
+permissions:
+    custombansplus.admin:
+        description: Permission to access /custombans.
+        default: op
+    custombansplus.ban:
+        description: Permission to use /ban <player> perm.
+        default: op
+    custombansplus.overwrite:
+        default: op
+    custombansplus.unban:
+        default: op
+    custombansplus.unmute:
+        default: op
+    custombansplus.warn:
+        default: op
+    custombansplus.kick:
+        default: op
+    custombansplus.mute:
+        default: op
+    custombansplus.update:
+        default: op

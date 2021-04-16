@@ -1,0 +1,15 @@
+'1':
+    duration: 3d
+    baldeduct: 0.3
+    clear-inv: false
+    console-commands: []
+'2':
+    duration: 7d
+    baldeduct: 0.5
+    clear-inv: true
+    console-commands: []
+'3':
+    duration: 14d
+    baldeduct: 0.7
+    clear-inv: true
+    console-commands: []
