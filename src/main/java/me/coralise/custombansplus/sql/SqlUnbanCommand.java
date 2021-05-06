@@ -6,7 +6,10 @@
 package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
 
+import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -22,7 +25,7 @@ public class SqlUnbanCommand extends SqlAbstractCommand {
         super("cbpunban", "custombansplus.unban", true);
     }
     
-    public final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     ConsoleCommandSender cnsl = Bukkit.getServer().getConsoleSender();
 
     @Override
@@ -49,22 +52,24 @@ public class SqlUnbanCommand extends SqlAbstractCommand {
             sender.sendMessage("§ePlayer " + args[0+s] + " has never been on the server.");
             return true;
         }
+        UUID tgtUuid = m.getUuid(target);
         
-        if(!SqlCache.isPlayerBanned(target)){
+        if(!SqlCache.isPlayerBanned(tgtUuid)){
             sender.sendMessage("§cPlayer " + target + " is not banned.");
             return true;
         }
         
         Bukkit.getScheduler().runTask(m, () -> {
 
-            SqlMethods.updateHistoryStatus(target, "Ban", "Unbanned", sender);
+            try {
+                SqlMethods.updateHistoryStatus(tgtUuid, "Ban", "Unbanned", sender);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
     
-            if(!SqlCache.isIpBanned(m.getSqlIp(target))){
-                SqlCache.removeBan(target);
-                SqlCache.getOciCache().remove(m.getUuid(target));
-                m.updateSqlOci();
-            }else
-                SqlCache.removeIpBan(m.getSqlIp(target), "Unbanned", sender);
+            SqlCache.removeBan(tgtUuid, "Unbanned", sender);
+            SqlCache.getOciCache().remove(m.getUuid(target));
+            m.updateSqlOci();
 
         });
 

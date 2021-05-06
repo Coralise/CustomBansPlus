@@ -14,7 +14,7 @@ import org.bukkit.inventory.Inventory;
 
 public class SqlCBMenu implements Listener {
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static SqlGUIItems item = new SqlGUIItems();
     public static int sevNum;
     public static Player player;
@@ -55,7 +55,7 @@ public class SqlCBMenu implements Listener {
         mainMenu.setItem(25, item.fillerItem());
         mainMenu.setItem(26, item.fillerItem());
 
-        player.openInventory(mainMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(mainMenu));
 
         return true;
 
@@ -97,7 +97,7 @@ public class SqlCBMenu implements Listener {
         miscMenu.setItem(25, item.fillerItem());
         miscMenu.setItem(26, item.fillerItem());
 
-        player.openInventory(miscMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(miscMenu));
 
         return true;
 
@@ -139,7 +139,7 @@ public class SqlCBMenu implements Listener {
         editPageMenu.setItem(25, item.fillerItem());
         editPageMenu.setItem(26, item.fillerItem());
 
-        player.openInventory(editPageMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(editPageMenu));
 
         return true;
 
@@ -181,7 +181,7 @@ public class SqlCBMenu implements Listener {
         editAnnouncersMenu.setItem(25, item.fillerItem());
         editAnnouncersMenu.setItem(26, item.fillerItem());
 
-        player.openInventory(editAnnouncersMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(editAnnouncersMenu));
 
         return true;
 
@@ -243,7 +243,7 @@ public class SqlCBMenu implements Listener {
             sevsMenu.setItem(i, item.getSevItem(sevNum));
         }
 
-        player.openInventory(sevsMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(sevsMenu));
 
         return true;
 
@@ -301,7 +301,7 @@ public class SqlCBMenu implements Listener {
         sevsMenu.setItem(34, item.fillerItem());
         sevsMenu.setItem(35, item.fillerItem());
 
-        player.openInventory(sevsMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(sevsMenu));
 
         return true;
 
@@ -341,7 +341,7 @@ public class SqlCBMenu implements Listener {
         sevsEditMenu.setItem(25, item.fillerItem());
         sevsEditMenu.setItem(26, item.fillerItem());
 
-        player.openInventory(sevsEditMenu);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(sevsEditMenu));
 
         return true;
 
@@ -401,60 +401,60 @@ public class SqlCBMenu implements Listener {
 
             case "Temp Ban Announcer":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), "tempban");
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%player% %staff% %duration% %reason%");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlAbstractAnnouncer.getSilentAnnouncer("Victim", player.getName(), "7d", "@Reason", "tempban");
                 }
                 return;
 
             case "IP Ban Announcer":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), "ipban");
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%player% %staff% %duration% %reason%");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlAbstractAnnouncer.getSilentAnnouncer("Victim", player.getName(), "@7d", "@Reason", "ipban");
                 }
                 return;
 
             case "Mute Announcer":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), "mute");
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%player% %staff% %duration% %reason%");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlAbstractAnnouncer.getSilentAnnouncer("Victim", player.getName(), "@7d", "@Reason", "mute");
                 }
                 return;
 
             case "Warn Announcer":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), "warn");
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%player% %staff% %reason%");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlAbstractAnnouncer.getSilentAnnouncer("Victim", player.getName(), null, "@Reason", "warn");
                 }
                 return;
 
             case "Kick Announcer":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), "kick");
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%player% %staff% %reason%");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlAbstractAnnouncer.getSilentAnnouncer("Victim", player.getName(), null, "@Reason", "kick");
                 }
                 return;
@@ -462,29 +462,29 @@ public class SqlCBMenu implements Listener {
             case "Temp Ban Page":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
                     SqlCBCommand.isEditing.put(player.getName(), "temp");
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%staff% %duration% %reason% %unban-date% %player% %timeleft% /n");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.kickPlayer(SqlAbstractBanCommand.getBanMsg(player.getName(), "temp"));
+                    player.kickPlayer(SqlAbstractBanCommand.getBanMsgTest(m.getUuid(player.getName()), "temp"));
                 }
                 return;
 
             case "Perm Ban Page":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
                     SqlCBCommand.isEditing.put(player.getName(), "perm");
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%staff% %duration% %reason% %unban-date% %player% %timeleft% /n");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.kickPlayer(SqlAbstractBanCommand.getBanMsg(player.getName(), "perm"));
+                    player.kickPlayer(SqlAbstractBanCommand.getBanMsgTest(m.getUuid(player.getName()), "perm"));
                 }
                 return;
 
             case "Kick Page":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
                     SqlCBCommand.isEditing.put(player.getName(), "kickPage");
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     player.sendMessage("§eType in the new format you want down below. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eFORMATS: §d%staff% %reason% %player% /n");
                 }else if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
@@ -498,7 +498,7 @@ public class SqlCBMenu implements Listener {
 
             case "default reason":
                 if(event.getClick().toString().equalsIgnoreCase("LEFT")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), "defaultreason");
                     player.sendMessage("§eType in the new default reason you want down below. Type \"cancel\" to cancel action.");
                     return;
@@ -506,14 +506,14 @@ public class SqlCBMenu implements Listener {
 
             case "punishment histories":
                 if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.clearHistories((CommandSender) player);
                     return;
                 }
 
             case "alts histories":
                 if(event.getClick().toString().equalsIgnoreCase("MIDDLE")){
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     player.sendMessage("§eCleaning player list...");
                     SqlMethods.clearAccounts();
                     player.sendMessage("§aPlayer list cleaned.");
@@ -616,7 +616,7 @@ public class SqlCBMenu implements Listener {
 
             case "Duration":
                 if (event.getClick().toString().equalsIgnoreCase("LEFT")) {
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), sevNum2 + "durationGUI");
                     player.sendMessage("§eAccepted values: §dperm or Xd Xh Xm Xs (you may combine them, i.e. 2d6h30m");
                     player.sendMessage("§eEnter new duration:");
@@ -633,7 +633,7 @@ public class SqlCBMenu implements Listener {
 
             case "Balance Deduction":
                 if (event.getClick().toString().equalsIgnoreCase("LEFT")) {
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), sevNum2 + "baldeductGUI");
                     player.sendMessage("§eAccepted values: §dX%");
                     player.sendMessage("§eEnter new Balance Deduction Percentage:");
@@ -669,7 +669,7 @@ public class SqlCBMenu implements Listener {
 
             case "Console Commands":
                 if (event.getClick().toString().equalsIgnoreCase("LEFT")) {
-                    player.closeInventory();
+                    Bukkit.getScheduler().runTask(m, () -> player.closeInventory());
                     SqlCBCommand.isEditing.put(player.getName(), sevNum2 + "console-cmdsGUI");
                     player.sendMessage("§eCommand without /. Separate each with comma (commandx,commandy). Enter player as \"§d%player%§e\" (reset %player%). Enter \"clear\" to clear commands. Type \"cancel\" to cancel action.");
                     player.sendMessage("§eEnter new Console Commands:");

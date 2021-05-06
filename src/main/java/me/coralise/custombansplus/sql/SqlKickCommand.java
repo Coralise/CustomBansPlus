@@ -1,6 +1,7 @@
 package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +16,7 @@ public class SqlKickCommand extends SqlAbstractCommand {
         super("cbpkick", "custombansplus.kick", true);
     }
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static Player plTarget;
     static CommandSender sdr;
     static String rsn;
@@ -40,16 +41,11 @@ public class SqlKickCommand extends SqlAbstractCommand {
             reason = rsn;
         }
         
-        String msg = m.getConfig().getString("kick-page");
+        String msg = m.parseMessage(m.getConfig().getString("pages.kick"));
 
-        msg = msg.replace(" /n ", "\n");
-        msg = msg.replace("/n ", "\n");
-        msg = msg.replace(" /n", "\n");
-        msg = msg.replace("/n", "\n");
         msg = msg.replace("%player%", tgt);
         msg = msg.replace("%staff%", send);
         msg = msg.replace("%reason%", reason);
-        msg = msg.replace("&", "§");
     
         return msg;
         
@@ -88,20 +84,22 @@ public class SqlKickCommand extends SqlAbstractCommand {
             }
             rsn = rsn.trim();
         }else if(!m.getConfig().getBoolean("toggle-no-reason"))
-            rsn = m.getConfig().getString("default-reason");
+            rsn = m.parseMessage(m.getConfig().getString("defaults.reason"));
 
         if(rsn.equalsIgnoreCase(""))
             annType = "kickNoRsn";
         else
             annType = "kick";
 
-        Bukkit.getScheduler().runTask(m, () -> {
+        new Thread(() -> {
+            Bukkit.getScheduler().runTask(m, () -> plTarget.kickPlayer(getKickMsg(false)));
 
-            plTarget.kickPlayer(getKickMsg(false));
-
-            SqlMethods.addHistory(target, "Kick", sender, rsn);
-
-        });
+            try {
+                SqlMethods.addHistory(m.getUuid(target), "Kick", sender, rsn);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }).start();
 
         if (s == 0) SqlAbstractAnnouncer.getAnnouncer(plTarget.getName(), sdr.getName(), null, rsn, annType);
         else SqlAbstractAnnouncer.getSilentAnnouncer(plTarget.getName(), sdr.getName(), null, rsn, annType);

@@ -14,7 +14,7 @@ public class YamlUnmuteCommand extends YamlAbstractCommand {
         super("cbpunmute", "custombansplus.unmute", true);
     }
 
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     String target;
 
     @Override
@@ -48,14 +48,12 @@ public class YamlUnmuteCommand extends YamlAbstractCommand {
             return true;
         }
 
-        if (args.length != 1 || !m.getMutesConfig().getKeys(false).contains(m.getUuid(target))) {
+        if (args.length != 1 || !YamlCache.isPlayerMuted(m.getUuid(target))) {
             sender.sendMessage("§cPlayer " + target + " is not muted.");
             return true;
         }
 
-        Bukkit.getScheduler().runTask(m, () -> {
-            YamlCache.removeMute(m.getUuid(target));
-        });
+        new Thread(() -> YamlCache.removeMute(m.getUuid(target))).start();
 
         if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sender.getName(), null, null, "unmute");
         else YamlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), null, null, "unmute");
@@ -66,7 +64,6 @@ public class YamlUnmuteCommand extends YamlAbstractCommand {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        // TODO Auto-generated method stub
         return null;
     }
     

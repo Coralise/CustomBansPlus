@@ -1,8 +1,10 @@
 package me.coralise.custombansplus.sql;
 
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.sql.objects.SqlBanned;
 
 import java.text.SimpleDateFormat;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -10,38 +12,55 @@ import org.bukkit.entity.Player;
 
 public abstract class SqlAbstractBanCommand {
 
-    public static final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public static final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public static String getBanMsg(String target, String test) {
-        String type;
-        if (test == null)
-            type = SqlMethods.getBanType(target);
-        else if (test.equalsIgnoreCase("temp"))
-            type = "dura";
-        else
-            type = "perm";
+    public static String getBanMsg(UUID uuid) {
+
+        SqlBanned sb = SqlCache.getBannedObject(uuid);
+        
+        String banner = m.getName(sb.getBannerUuid());
+        String reason = sb.getReason();
+        String unban = sb.getUnbanDateString();
+        String duration = sb.getDuration();
+        String timeleft = "";
+        if (!duration.equalsIgnoreCase("Permanent"))
+            timeleft = m.getTimeRemaining(sb.getUnbanDate());
 
         String msg = "placeholder";
         // %staff% %duration% %reason% %unban-date% %player% %timeleft%
-        if (type.equalsIgnoreCase("Perm Ban") || type.equalsIgnoreCase("Perm IP Ban"))
-            msg = m.getConfig().getString("permban-page");
+        if (duration.equalsIgnoreCase("Permanent"))
+            msg = m.parseMessage(m.getConfig().getString("pages.permban"));
         else
-            msg = m.getConfig().getString("tempban-page");
+            msg = m.parseMessage(m.getConfig().getString("pages.tempban"));
+
+        msg = msg.replace("%player%", SqlCache.getPlayerObject(sb.getUuid()).getUsername());
+        msg = msg.replace("%staff%", banner);
+        if (!duration.equalsIgnoreCase("Permanent")) msg = msg.replace("%duration%", duration);
+        msg = msg.replace("%reason%", reason);
+        if (!duration.equalsIgnoreCase("Permanent")) msg = msg.replace("%unban-date%", unban);
+        if (!duration.equalsIgnoreCase("Permanent")) msg = msg.replace("%timeleft%", timeleft);
+
+        return msg;
+
+    }
+
+    public static String getBanMsgTest(UUID uuid, String test) {
+
+        SqlBanned sb = SqlCache.getBannedObject(uuid);
 
         String timeleft = "";
         String banner = "";
         String duration = "";
         String reason = "";
         String unban = "";
-        String[] getter = new String[5];
-
+        
         if (test == null) {
-            getter = SqlMethods.getActiveBanDetails(target, type);
-            banner = getter[0];
-            reason = getter[1];
-            unban = getter[4];
-            timeleft = getter[3];
+            banner = m.getName(sb.getBannerUuid());
+            reason = sb.getReason();
+            unban = sb.getUnbanDateString();
+            timeleft = m.getTimeRemaining(sb.getUnbanDate());
+            duration = sb.getDuration();
         } else {
             banner = "@Staff";
             duration = "7d";
@@ -50,45 +69,41 @@ public abstract class SqlAbstractBanCommand {
             timeleft = "Xd Xh Xm Xs";
         }
 
-        msg = msg.replace(" /n ", "\n");
-        msg = msg.replace("/n ", "\n");
-        msg = msg.replace(" /n", "\n");
-        msg = msg.replace("/n", "\n");
-        msg = msg.replace("%player%", target);
+        String type;
+        if (test == null)
+            type = sb.getBanType().toString();
+        else if (test.equalsIgnoreCase("temp"))
+            type = "dura";
+        else
+            type = "perm";
+
+        String msg = "placeholder";
+        // %staff% %duration% %reason% %unban-date% %player% %timeleft%
+        if (type.equalsIgnoreCase("Perm Ban") || type.equalsIgnoreCase("Perm IP Ban"))
+            msg = m.parseMessage(m.getConfig().getString("pages.permban"));
+        else
+            msg = m.parseMessage(m.getConfig().getString("pages.tempban"));
+
+        msg = msg.replace("%player%", SqlCache.getPlayerObject(sb.getUuid()).getUsername());
         msg = msg.replace("%staff%", banner);
         if (!type.equalsIgnoreCase("Perm Ban") && !type.equalsIgnoreCase("Perm IP Ban")) msg = msg.replace("%duration%", duration);
         msg = msg.replace("%reason%", reason);
         if (!type.equalsIgnoreCase("Perm Ban") && !type.equalsIgnoreCase("Perm IP Ban")) msg = msg.replace("%unban-date%", unban);
         if (!type.equalsIgnoreCase("Perm Ban") && !type.equalsIgnoreCase("Perm IP Ban")) msg = msg.replace("%timeleft%", timeleft);
-        msg = msg.replace("&", "§");
 
         return msg;
 
     }
 
-    public static void banPage(String target){
+    public static void banPage(UUID uuid){
         
-        OfflinePlayer proTarget = m.getOfflinePlayer(target);
+        OfflinePlayer proTarget = m.getOfflinePlayer(uuid);
         if(proTarget.isOnline()){
-            Player p = Bukkit.getPlayer(target);
+            Player p = Bukkit.getPlayer(uuid);
             
-            p.kickPlayer(SqlAbstractBanCommand.getBanMsg(target, null));
+            Bukkit.getScheduler().runTask(m, () -> p.kickPlayer(SqlAbstractBanCommand.getBanMsg(uuid)));
         }
         
-    }
-
-    public static String getBanType(String value){
-
-        if (value.equalsIgnoreCase("perm"))
-            return "perm";
-        else if (value.length() >= 2 && value.charAt(0) == 's' && m.getSevConfig().getKeys(false).contains(value.substring(1)))
-            return "sev";
-        else if (m.isValueValid(value)) {
-            return "dura";
-        } else {
-            return null;
-        }
-
     }
     
 }

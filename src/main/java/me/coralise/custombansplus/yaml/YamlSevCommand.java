@@ -27,7 +27,7 @@ public class YamlSevCommand extends YamlAbstractCommand{
         super("severities", null, true);
     }
     
-    public final static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public static final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     public int sevTotal;
     public int pageTotal;
     public int page;
@@ -270,12 +270,8 @@ public class YamlSevCommand extends YamlAbstractCommand{
         if(args.length == 0){
             if(!(sender instanceof Player)){
                 sender.sendMessage("§cYou must be in-game to use this command.");
-                System.out.println("New Player Cache");
-                YamlCache.printOutNewPlayerCache();
                 System.out.println("Player Cache");
                 YamlCache.printOutPlayerCache();
-                System.out.println("Player IP Cache");
-                YamlCache.printOutPlayerIpCache();
                 System.out.println("Ban Cache");
                 YamlCache.printOutBanCache();
                 System.out.println("Mute Cache");

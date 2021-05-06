@@ -12,7 +12,7 @@ public abstract class AbstractEconomy {
         return econ;
     }
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
     public static boolean setupEconomy() {
         if (m.getServer().getPluginManager().getPlugin("Vault") == null) {

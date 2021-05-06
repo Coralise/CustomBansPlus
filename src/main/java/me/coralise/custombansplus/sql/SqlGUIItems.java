@@ -10,7 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public class SqlGUIItems {
 
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     
     public ItemStack airItem(){
 
@@ -464,7 +464,7 @@ public class SqlGUIItems {
         meta.setLocalizedName("default reason");
         List<String> lore = new ArrayList<String>();
         lore.add("§r§eCurrent:");
-        lore.add("§r§f" + m.getConfig().getString("default-reason"));
+        lore.add("§r§f" + m.parseMessage(m.getConfig().getString("defaults.reason")));
         lore.add("§r§e");
         lore.add("§r§eLeft Click: §fEdit");
         meta.setLore(lore);

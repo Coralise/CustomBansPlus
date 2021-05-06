@@ -27,7 +27,7 @@ public class SqlSevCommand extends SqlAbstractCommand{
         super("severities", null, true);
     }
     
-    public final static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public final static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     public int sevTotal;
     public int pageTotal;
     public int page;
@@ -274,12 +274,8 @@ public class SqlSevCommand extends SqlAbstractCommand{
                 SqlCache.printOutBanCache();
                 System.out.println("Mute Cache");
                 SqlCache.printOutMuteCache();
-                System.out.println("New Player Cache");
-                SqlCache.printOutNewPlayerCache();
                 System.out.println("Player Cache");
                 SqlCache.printOutPlayerCache();
-                System.out.println("Player IP Cache");
-                SqlCache.printOutPlayerIpCache();
                 return true;
             }
             if(sender.hasPermission("custombansplus.admin")){

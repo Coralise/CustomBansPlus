@@ -2,6 +2,7 @@ package me.coralise.custombansplus.yaml;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -9,7 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.coralise.custombansplus.CustomBansPlus;
-import me.coralise.custombansplus.GetJavaPlugin;
+import me.coralise.custombansplus.ClassGetter;
 
 public class YamlWarnCommand extends YamlAbstractCommand {
 
@@ -21,7 +22,7 @@ public class YamlWarnCommand extends YamlAbstractCommand {
     String reason;
     public String duration;
     CommandSender sdr;
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     String annType;
 
     @Override
@@ -49,6 +50,7 @@ public class YamlWarnCommand extends YamlAbstractCommand {
             return false;
         }
         target = plTarget.getName();
+        UUID tgtUuid = plTarget.getUniqueId();
 
         if(args.length > 1+s){
             for(int i = 1+s; i < args.length; i++){
@@ -58,19 +60,19 @@ public class YamlWarnCommand extends YamlAbstractCommand {
         }
 
         if (reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
-            reason = m.getConfig().getString("default-warn-reason");
+            reason = m.parseMessage(m.getConfig().getString("defaults.warn-reason"));
         
         if (reason.equalsIgnoreCase(""))
             annType = "warnNoRsn";
         else
             annType = "warn";
 
-        YamlAbstractBanCommand.addHistory(target, sender.getName(), "warn", reason, null);
+        YamlAbstractBanCommand.addHistory(tgtUuid, sender.getName(), "warn", reason, null);
 
-        if(m.getConfig().getBoolean("enable-warn-titles")){
-            String subtitle = m.getConfig().getString("warn-subtitle");
-            if(m.getConfig().getBoolean("custom-subtitle")) subtitle = "§f" + reason;
-            plTarget.sendTitle(m.getConfig().getString("warn-title"), subtitle);
+        if(m.getConfig().getBoolean("warn-title.enable")){
+            String subtitle = m.parseMessage(m.getConfig().getString("warn-title.warn-subtitle"));
+            if(m.getConfig().getBoolean("warn-title.custom-subtitle")) subtitle = "§f" + reason;
+            plTarget.sendTitle(m.parseMessage(m.getConfig().getString("warn-title.warn-title")), subtitle);
         }
 
         if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sender.getName(), null, reason, annType);

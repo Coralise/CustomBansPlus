@@ -27,8 +27,15 @@ public class SqlCBCommand extends SqlAbstractCommand {
         super("custombansplus", "custombansplus.admin", true);
     }
 
-    public static final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public static final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     protected static Map<String, String> isEditing = new HashMap<String, String>();
+
+    private void reloadConfig(CommandSender sender) {
+
+        m.reloadConfig();
+        sender.sendMessage("§aConfig file reloaded.");
+
+    }
 
     public boolean helpScreen(CommandSender sender) {
 
@@ -74,6 +81,10 @@ public class SqlCBCommand extends SqlAbstractCommand {
             
             case "help":
                 helpScreen(sender);
+                return true;
+
+            case "reload":
+                reloadConfig(sender);
                 return true;
             
             case "purge":
@@ -142,7 +153,7 @@ public class SqlCBCommand extends SqlAbstractCommand {
                 sender.sendMessage("§cYou're in the console, silly!");
                 return true;
             }
-            Bukkit.getPlayer(sender.getName()).kickPlayer(SqlAbstractBanCommand.getBanMsg(sender.getName(), "temp"));
+            Bukkit.getPlayer(sender.getName()).kickPlayer(SqlAbstractBanCommand.getBanMsgTest(m.getUuid(sender), "temp"));
             return true;
         }
         if(args.length > 2 && args[0].concat(args[1]).concat(args[2]).equalsIgnoreCase("banpagepermset")){
@@ -156,7 +167,7 @@ public class SqlCBCommand extends SqlAbstractCommand {
                 sender.sendMessage("§cYou're in the console, silly!");
                 return true;
             }
-            Bukkit.getPlayer(sender.getName()).kickPlayer(SqlAbstractBanCommand.getBanMsg(sender.getName(), "perm"));
+            Bukkit.getPlayer(sender.getName()).kickPlayer(SqlAbstractBanCommand.getBanMsgTest(m.getUuid(sender), "perm"));
             return true;
         }
         if(args[0].concat(args[1]).equalsIgnoreCase("kickpageset")){
@@ -196,6 +207,7 @@ public class SqlCBCommand extends SqlAbstractCommand {
             
             case 1:
                 tabComplete.add("help");
+                tabComplete.add("reload");
                 tabComplete.add("purge");
                 tabComplete.add("banpage");
                 tabComplete.add("kickpage");

@@ -1,6 +1,6 @@
 package me.coralise.custombansplus.yaml;
 
-import com.mysql.cj.x.protobuf.MysqlxCrud.Update;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -14,23 +14,40 @@ import me.coralise.custombansplus.*;
 
 public class YamlMain implements Listener{
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
     @EventHandler
     public boolean onLogin(AsyncPlayerPreLoginEvent event){
         
         String stPlayer = event.getName();
-        String uuid = m.getUuid(stPlayer);
+        UUID uuid = m.getUuid(stPlayer);
+        String currentIP = event.getAddress().toString();
+        currentIP = currentIP.substring(1);
+        currentIP = currentIP.replace('.', '-');
 
-        if(YamlCache.isPlayerLogged(uuid) && YamlCache.isPlayerBanned(uuid)){
-            if(!YamlCache.isBanLifted(uuid)){
-                event.disallow(Result.KICK_BANNED, YamlAbstractBanCommand.getBanMsg(stPlayer, null));
-            }else{
+        YamlCache.setPlayer(uuid, currentIP);
+
+        if (YamlCache.isPlayerBanned(uuid)) {
+            if (!YamlCache.isBanLifted(uuid)) {
+                event.disallow(Result.KICK_BANNED, YamlAbstractBanCommand.getBanMsg(uuid));
+                return false;
+            } else {
                 YamlCache.removeBan(uuid);
+                return true;
             }
         }
 
-        return false;
+        if (YamlCache.isIpBanned(currentIP)) {
+            if (!YamlCache.isBanLifted(currentIP)) {
+                YamlCache.copyIPBan(uuid);
+                event.disallow(Result.KICK_BANNED, YamlAbstractBanCommand.getBanMsg(uuid));
+                return false;
+            } else {
+                YamlCache.removeIpBan(currentIP);
+            }
+        }
+
+        return true;
         
     }
     
@@ -38,41 +55,27 @@ public class YamlMain implements Listener{
     public boolean onPlayerJoin(PlayerJoinEvent event){
         
         String currentIGN = event.getPlayer().getName();
-        String uuid = m.getUuid(currentIGN);
-        String currentIP = m.getYamlIp(currentIGN);
+        UUID uuid = m.getUuid(currentIGN);
 
         UpdateChecker.checkUpdate(event.getPlayer());
 
-        Bukkit.getScheduler().runTask(m, () -> {
+        new Thread(() -> {
+
             if(YamlCache.getOciCache().contains(uuid)){
                 Bukkit.getPlayer(currentIGN).getInventory().clear();
                 YamlCache.getOciCache().remove(uuid);
                 m.updateYamlOci();
             }
 
-            if(YamlCache.isPlayerLogged(uuid) && !YamlCache.isIgnDifferent(uuid) && !YamlCache.isIpDifferent(uuid, currentIP)) return;
-    
-            if(!YamlCache.isPlayerLogged(uuid)){
-                YamlCache.setNewPlayer(uuid, "new");
-                YamlCache.setPlayerIP(uuid);
-            }else if(YamlCache.isIpDifferent(uuid, currentIP))
-                YamlCache.setNewPlayer(uuid, "ip");
-
-            YamlCache.setPlayer(uuid);
-
-            if(YamlCache.isPlayerLogged(uuid) && YamlCache.isPlayerBanned(uuid)){
+            if(YamlCache.isPlayerBanned(uuid)){
                 if(!YamlCache.isBanLifted(uuid)){
-                    event.getPlayer().kickPlayer(YamlAbstractBanCommand.getBanMsg(currentIGN, null));
+                    Bukkit.getScheduler().runTask(m, () -> event.getPlayer().kickPlayer(YamlAbstractBanCommand.getBanMsg(uuid)));
                 }else{
                     YamlCache.removeBan(uuid);
                 }
             }
-    
-            if(m.getBansConfig().getKeys(false).contains(currentIP)){
-                YamlAbstractBanCommand.copyIPBan(currentIGN, currentIP);
-                event.getPlayer().kickPlayer(YamlAbstractBanCommand.getBanMsg(currentIGN, null));
-            }
-        });
+
+        }).start();
         
         return true;
         
@@ -82,13 +85,14 @@ public class YamlMain implements Listener{
     public void onChat(AsyncPlayerChatEvent event){
 
         String target = event.getPlayer().getName();
-        String uuid = m.getUuid(target);
+        UUID uuid = m.getUuid(target);
 
         if(YamlCache.isPlayerMuted(uuid)){
 
             if(!YamlCache.isMuteLifted(uuid)){
+                System.out.println("Inside mute not lifted");
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("§cYou are muted.");
+                event.getPlayer().sendMessage(m.parseMessage(m.getConfig().getString("messages.muted-player")));
             }else{
                 YamlCache.removeMute(uuid);
             }
@@ -135,31 +139,31 @@ public class YamlMain implements Listener{
         }
         
         if(edit.equalsIgnoreCase("temp")){
-            m.getConfig().set("tempban-page", event.getMessage());
+            m.getConfig().set("pages.tempban", event.getMessage());
             event.getPlayer().sendMessage("§aTemp Ban Page successfully updated.");
             YamlCBCommand.isEditing.remove(strPlayer);
             return;
         }
         if(edit.equalsIgnoreCase("perm")){
-            m.getConfig().set("permban-page", event.getMessage());
+            m.getConfig().set("pages.permban", event.getMessage());
             event.getPlayer().sendMessage("§aPerm Ban Page successfully updated.");
             YamlCBCommand.isEditing.remove(strPlayer);
             return;
         }
         if(edit.equalsIgnoreCase("kickPage")){
-            m.getConfig().set("kick-page", event.getMessage());
+            m.getConfig().set("pages.kick", event.getMessage());
             event.getPlayer().sendMessage("§aKick Page successfully updated.");
             YamlCBCommand.isEditing.remove(strPlayer);
             return;
         }
         if(edit.equalsIgnoreCase("defaultreason")){
-            m.getConfig().set("default-reason", event.getMessage());
+            m.getConfig().set("defaults.reason", event.getMessage());
             event.getPlayer().sendMessage("§aDefault Reason successfully updated.");
             YamlCBCommand.isEditing.remove(strPlayer);
             return;
         }
 
-        m.getConfig().set(edit+"-announcer", event.getMessage());
+        m.getConfig().set("announcers." + edit, event.getMessage());
         event.getPlayer().sendMessage("§aThe "+ edit + " announcement is successfully updated.");
         YamlCBCommand.isEditing.remove(strPlayer);
         

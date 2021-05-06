@@ -1,5 +1,7 @@
 package me.coralise.custombansplus.sql;
 
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,80 +15,74 @@ import me.coralise.custombansplus.*;
 
 public class SqlMain implements Listener{
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
-    String currentIP;
-    String currentIGN;
     PlayerJoinEvent event;
 
     @EventHandler
     public boolean onLogin(AsyncPlayerPreLoginEvent event){
         
         String stPlayer = event.getName();
+        UUID uuid = m.getUuid(stPlayer);
+        String ip = event.getAddress().toString();
+        ip = ip.substring(1);
 
-        if(SqlCache.isPlayerBanned(stPlayer)){
-            if(!SqlCache.isBanLifted(stPlayer)){
-                event.disallow(Result.KICK_BANNED, SqlAbstractBanCommand.getBanMsg(stPlayer, null));
-            }else{
-                if(SqlCache.isIpBanned(m.getSqlIp(stPlayer)))
-                    SqlCache.removeIpBan(m.getSqlIp(stPlayer), "Lifted", null);
-                else{
-                    SqlMethods.updateHistoryStatus(stPlayer, "Ban", "Lifted", null);
-                    SqlCache.removeBan(stPlayer);
-                }
+        SqlCache.setPlayer(uuid, ip);
+
+        if (SqlCache.isPlayerBanned(uuid)) {
+            if (!SqlCache.isBanLifted(uuid)) {
+                event.disallow(Result.KICK_BANNED, SqlAbstractBanCommand.getBanMsg(uuid));
+                return false;
+            } else {
+                SqlCache.removeBan(uuid, "Lifted", null);
             }
         }
 
-        return false;
+        if (SqlCache.isIpBanned(ip)) {
+            if (!SqlCache.isBanLifted(ip)) {
+                SqlCache.copyIPBan(uuid);
+                event.disallow(Result.KICK_BANNED, SqlAbstractBanCommand.getBanMsg(uuid));
+                return false;
+            } else {
+                SqlCache.removeIpBan(ip, "Lifted", null);
+            }
+        }
+
+        return true;
         
     }
 
     @EventHandler
     public boolean onPlayerJoin(PlayerJoinEvent event){
         
-        currentIGN = event.getPlayer().getName();
-        currentIP = m.getSqlIp(currentIGN);
-        this.event = event;
+        String currentIGN = event.getPlayer().getName();
+        UUID uuid = event.getPlayer().getUniqueId();
 
         UpdateChecker.checkUpdate(event.getPlayer());
 
-        if (SqlCache.getOciCache().contains(m.getUuid(currentIGN))) {
-            Bukkit.getPlayer(currentIGN).getInventory().clear();
-            SqlCache.getOciCache().remove(m.getUuid(currentIGN));
-            m.updateSqlOci();
-        }
+        new Thread(() -> {
 
-        if (!SqlCache.isPlayerLogged(currentIGN)) {
-            SqlCache.setNewPlayer(currentIGN, "new");
-        } else if (SqlCache.isIpDifferent(currentIGN, currentIP))
-            SqlCache.setNewPlayer(currentIGN, "ip");
-        else
-            return true;
-            
-        SqlCache.setPlayer(currentIGN);
-
-        Bukkit.getScheduler().runTask(m, () -> {
-
-            if (SqlCache.isIpBanned(currentIP)) {
-                SqlMethods.banPlayer(currentIGN);
-                SqlMethods.addHistory(currentIGN, "Ban", null, null);
-                event.getPlayer().kickPlayer(SqlAbstractBanCommand.getBanMsg(currentIGN, null));
+            if(SqlCache.getOciCache().contains(uuid)){
+                Bukkit.getPlayer(currentIGN).getInventory().clear();
+                SqlCache.getOciCache().remove(uuid);
+                m.updateSqlOci();
             }
-    
-            if (SqlCache.isPlayerNew("-" + currentIGN) && SqlCache.isPlayerBanned(currentIGN)) {
-                if (!SqlCache.isBanLifted(currentIGN)) {
-                    event.getPlayer().kickPlayer(SqlAbstractBanCommand.getBanMsg(currentIGN, null));
+
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            if (SqlCache.isPlayerBanned(uuid)) {
+                if (!SqlCache.isBanLifted(uuid)) {
+                    Bukkit.getScheduler().runTask(m, () -> event.getPlayer().kickPlayer(SqlAbstractBanCommand.getBanMsg(uuid)));
                 } else {
-                    if (SqlCache.isIpBanned(m.getSqlIp(currentIGN)))
-                        SqlCache.removeIpBan(m.getSqlIp(currentIGN), "Lifted", null);
-                    else {
-                        SqlMethods.updateHistoryStatus(currentIGN, "Ban", "Lifted", null);
-                        SqlCache.removeBan(currentIGN);
-                    }
+                    SqlCache.removeBan(uuid, "Lifted", null);
                 }
             }
 
-        });
+        }).start();
         
         return true;
         
@@ -97,16 +93,16 @@ public class SqlMain implements Listener{
 
         String strPlayer = event.getPlayer().getName();
         Player player = Bukkit.getPlayer(strPlayer);
+        UUID uuid = player.getUniqueId();
 
-        if (SqlCache.isPlayerMuted(strPlayer)) {
+        if (SqlCache.isPlayerMuted(uuid)) {
 
-            if (!SqlCache.isMuteLifted(strPlayer)) {
-                String message = m.getConfig().getString("muted-player-message");
+            if (!SqlCache.isMuteLifted(uuid)) {
+                String message = m.parseMessage(m.getConfig().getString("messages.muted-player"));
                 player.sendMessage(message);
                 event.setCancelled(true);
             } else {
-                SqlCache.removeMute(strPlayer);
-                SqlMethods.updateHistoryStatus(strPlayer, "Mute", "Lifted", null);
+                SqlCache.removeMute(uuid, "Lifted", null);
             }
 
         }
@@ -147,31 +143,31 @@ public class SqlMain implements Listener{
         }
         
         if(edit.equalsIgnoreCase("temp")){
-            m.getConfig().set("tempban-page", event.getMessage());
+            m.getConfig().set("pages.tempban", event.getMessage());
             event.getPlayer().sendMessage("§aTemp Ban Page successfully updated.");
             SqlCBCommand.isEditing.remove(strPlayer);
             return;
         }
         if(edit.equalsIgnoreCase("perm")){
-            m.getConfig().set("permban-page", event.getMessage());
+            m.getConfig().set("pages.permban", event.getMessage());
             event.getPlayer().sendMessage("§aPerm Ban Page successfully updated.");
             SqlCBCommand.isEditing.remove(strPlayer);
             return;
         }
         if(edit.equalsIgnoreCase("kickPage")){
-            m.getConfig().set("kick-page", event.getMessage());
+            m.getConfig().set("pages.kick", event.getMessage());
             event.getPlayer().sendMessage("§aKick Page successfully updated.");
             SqlCBCommand.isEditing.remove(strPlayer);
             return;
         }
         if(edit.equalsIgnoreCase("defaultreason")){
-            m.getConfig().set("default-reason", event.getMessage());
+            m.getConfig().set("defaults.reason", event.getMessage());
             event.getPlayer().sendMessage("§aDefault Reason successfully updated.");
             SqlCBCommand.isEditing.remove(strPlayer);
             return;
         }
 
-        m.getConfig().set(edit+"-announcer", event.getMessage());
+        m.getConfig().set("announcers." + edit, event.getMessage());
         event.getPlayer().sendMessage("§aThe "+ edit + " announcement is successfully updated.");
         SqlCBCommand.isEditing.remove(strPlayer);
         

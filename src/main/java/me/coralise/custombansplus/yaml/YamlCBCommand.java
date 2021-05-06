@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
@@ -27,8 +28,15 @@ public class YamlCBCommand extends YamlAbstractCommand {
         super("custombansplus", "custombansplus.admin", true);
     }
 
-    public static final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
-    public static HashMap<String, String> isEditing = new HashMap<String, String>();
+    public static final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
+    protected static Map<String, String> isEditing = new HashMap<String, String>();
+
+    private void reloadConfig(CommandSender sender) {
+
+        m.reloadConfig();
+        sender.sendMessage("§aConfig file reloaded.");
+
+    }
 
     public boolean helpScreen(CommandSender sender) {
 
@@ -48,45 +56,18 @@ public class YamlCBCommand extends YamlAbstractCommand {
 
     public static boolean clearAccounts(CommandSender sender) {
 
-        HashMap<String, List<String>> saveIps = new HashMap<String, List<String>>();
+        ArrayList<String> savedIps = new ArrayList<String>();
 
-        for (String ip : m.getBansConfig().getKeys(false)) {
-            if (ip.contains("-")) {
-                List<String> ipList = m.getAltsConfig().getStringList(ip);
-                saveIps.put(ip, ipList);
-            }
-        }
+        m.getBansConfig().getKeys(false).stream().filter(k -> k.contains("-")).forEach(savedIps::add);
 
-        m.getAltsConfig().getKeys(false).forEach(ip -> {
-            m.getAltsConfig().set(ip, null);
-        });
+        Bukkit.getServer().getOnlinePlayers().stream().forEach(p -> savedIps.add(m.getYamlIp(p.getUniqueId())));
+
+        m.getAltsConfig().getKeys(false).stream().filter(k -> !savedIps.contains(k)).forEach(ip -> m.getAltsConfig().set(ip, null));
 
         try {
             m.getAltsConfig().save(m.getAltsFile());
         } catch (IOException ex) {
             Logger.getLogger(YamlCBCommand.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        for (String i : saveIps.keySet())
-            m.getAltsConfig().set(i, saveIps.get(i));
-
-        for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-            String currentIP = p.getAddress().toString();
-            currentIP = currentIP.replace('.', '-');
-            currentIP = currentIP.substring(1, currentIP.indexOf(":"));
-            String currentIGN = p.getName();
-
-            List<String> list = new ArrayList<String>();
-            list = m.getAltsConfig().getStringList(currentIP);
-            if (!list.contains(currentIGN))
-                list.add(currentIGN);
-            m.getAltsConfig().set(currentIP, list);
-        }
-
-        try {
-            m.getAltsConfig().save(m.getAltsFile());
-        } catch (IOException ex) {
-            Logger.getLogger(CustomBansPlus.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         YamlCache.refreshPlayerCaches();
@@ -151,6 +132,10 @@ public class YamlCBCommand extends YamlAbstractCommand {
             
             case "help":
                 helpScreen(sender);
+                return true;
+
+            case "reload":
+                reloadConfig(sender);
                 return true;
             
             case "purge":
@@ -222,7 +207,7 @@ public class YamlCBCommand extends YamlAbstractCommand {
                 sender.sendMessage("§cYou're in the console, silly!");
                 return true;
             }
-            Bukkit.getPlayer(sender.getName()).kickPlayer(YamlAbstractBanCommand.getBanMsg(sender.getName(), "temp"));
+            Bukkit.getPlayer(sender.getName()).kickPlayer(YamlAbstractBanCommand.getBanMsgTest(m.getUuid(sender), "temp"));
             return true;
         }
         if(args.length > 2 && args[0].concat(args[1]).concat(args[2]).equalsIgnoreCase("banpagepermset")){
@@ -236,7 +221,7 @@ public class YamlCBCommand extends YamlAbstractCommand {
                 sender.sendMessage("§cYou're in the console, silly!");
                 return true;
             }
-            Bukkit.getPlayer(sender.getName()).kickPlayer(YamlAbstractBanCommand.getBanMsg(sender.getName(), "perm"));
+            Bukkit.getPlayer(sender.getName()).kickPlayer(YamlAbstractBanCommand.getBanMsgTest(m.getUuid(sender), "perm"));
             return true;
         }
         if(args[0].concat(args[1]).equalsIgnoreCase("kickpageset")){
@@ -276,6 +261,7 @@ public class YamlCBCommand extends YamlAbstractCommand {
             
             case 1:
                 tabComplete.add("help");
+                tabComplete.add("reload");
                 tabComplete.add("purge");
                 tabComplete.add("banpage");
                 tabComplete.add("kickpage");

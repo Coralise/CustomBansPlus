@@ -8,6 +8,8 @@ import me.coralise.custombansplus.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
@@ -18,8 +20,8 @@ import org.bukkit.command.CommandSender;
 public class YamlAltsCommand extends YamlAbstractCommand{
 
     YamlAltsCommand() {
-        super("alternateaccounts", "custombansplus.ban", true);
-        m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+        super("cbpalts", "custombansplus.ban", true);
+        m = (CustomBansPlus) ClassGetter.getPlugin();
     }
     
     public final CustomBansPlus m;
@@ -37,13 +39,14 @@ public class YamlAltsCommand extends YamlAbstractCommand{
         }
         
         String target = YamlCache.getPlayerIgn(args[0]);
+        UUID tgtUuid = m.getUuid(target);
         
         if(target == null){
             sender.sendMessage("§cPlayer " + args[0] + " has never entered the server.");
             return true;
         }
 
-        String targetIp = m.getYamlIp(target);
+        String targetIp = m.getYamlIp(tgtUuid);
         
         if(targetIp == null){
             sender.sendMessage("§cPlayer " + target + " has never entered the server prior to the recent purge.");

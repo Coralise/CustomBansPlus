@@ -1,124 +1,58 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package me.coralise.custombansplus.yaml;
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.enums.BanType;
+import me.coralise.custombansplus.yaml.objects.YamlBanned;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 /**
  *
  * @author wayne
  */
-public class YamlBanCommand extends YamlAbstractCommand{
+public class YamlBanCommand extends YamlAbstractCommand {
 
     public YamlBanCommand() {
         super("cbpban", "custombansplus.ban", true);
     }
     
-    public static final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
-    String target;
-    String tgtUuid;
-    String value;
-    String reason;
-    OfflinePlayer proTarget;
-    static String type;
-    CommandSender sdr;
-    ConsoleCommandSender cnsl = Bukkit.getServer().getConsoleSender();
-    int s;
-    int stab;
-    String annType;
+    public static final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
-    public String setBanned(){
-        
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String duration = "";
-        boolean clearInv = false;
-        List<String> cmds = new ArrayList<String>();
-        Double balDeduct = 0.0;
-        
-        switch(type){
-            case "sev":
-                int sevNum = Integer.parseInt(value.substring(1));
-                clearInv = m.getSevConfig().getBoolean(sevNum+".clear-inv");
-                cmds = m.getSevConfig().getStringList(sevNum+".console-commands");
-                balDeduct = m.getSevConfig().getDouble(sevNum+".baldeduct");
-                if(m.getSevConfig().getString(sevNum + ".duration").equalsIgnoreCase("Permanent")){
-                    type = "perm";
-                    duration = "Permanent";
-                    break;
-                }
-                type = "dura";
-                value = m.getSevConfig().getString(sevNum + ".duration");
-                duration = value;
-                break;
-            case "perm":
-                duration = "Permanent";
-                break;
-            case "dura":
-                duration = value;
-                break;
-        }
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        m.checkSevValues(target, clearInv, balDeduct, cmds);
-        
-        m.getBansConfig().set(tgtUuid + ".duration", duration);
-        m.getBansConfig().set(tgtUuid + ".reason", reason);
-        if(sdr instanceof Player) m.getBansConfig().set(tgtUuid + ".banned-by", m.getUuid(sdr));
-        else m.getBansConfig().set(tgtUuid + ".banned-by", "CONSOLE");
-        
-        Date cDate = new Date();
-        String bannedOn = formatter.format(cDate);
-        
-        m.getBansConfig().set(tgtUuid + ".banned-on", bannedOn);
-        
-        if(type.equalsIgnoreCase("dura")){
+    public void setBanned(CommandSender sender, UUID tgtUuid, BanType banType, String reason, String duration){
 
-            String unbanDate = m.calculateUnpunishDate(value);
-            m.getBansConfig().set(tgtUuid + ".unban-date", unbanDate);
-            m.getBansConfig().set(tgtUuid + ".type", "Temp Ban");
+        if (sender instanceof Player)
+            YamlCache.setBan(tgtUuid, YamlCache.playerCache.get(tgtUuid).getIp(), banType, reason, duration, m.getUuid(sender).toString());
+        else
+            YamlCache.setBan(tgtUuid, YamlCache.playerCache.get(tgtUuid).getIp(), banType, reason, duration);
 
-        }else{
-        
-            m.getBansConfig().set(tgtUuid + ".unban-date", "None");
-            m.getBansConfig().set(tgtUuid + ".type", "Perm Ban");
-        
-        }
+        YamlBanned yamlBanned = YamlCache.banCache.get(tgtUuid);
+
+        m.getBansConfig().set(tgtUuid.toString() + ".type", yamlBanned.getBanType().toString());
+        m.getBansConfig().set(tgtUuid.toString() + ".duration", yamlBanned.getDuration());
+        m.getBansConfig().set(tgtUuid.toString() + ".reason", yamlBanned.getReason());
+        m.getBansConfig().set(tgtUuid.toString() + ".banned-by", yamlBanned.getBannerUuid());
+        m.getBansConfig().set(tgtUuid.toString() + ".ip", yamlBanned.getIp());
+        m.getBansConfig().set(tgtUuid.toString() + ".banned-on", formatter.format(yamlBanned.getBanDate()));
+        if (yamlBanned.getUnbanDate() != null)
+            m.getBansConfig().set(tgtUuid.toString() + ".unban-date", formatter.format(yamlBanned.getUnbanDate()));
 
         try {
             m.getBansConfig().save(m.getBansFile());
         } catch (IOException ex) {
             Logger.getLogger(YamlBanCommand.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        return type;
-        
-    }
-    
-    public boolean banPage(){
-        
-        if(proTarget.isOnline()){
-            Player p = Bukkit.getPlayer(target);
-            
-            p.kickPlayer(YamlAbstractBanCommand.getBanMsg(target, null));
-        }
-        
-        return true;
         
     }
     
@@ -128,16 +62,13 @@ public class YamlBanCommand extends YamlAbstractCommand{
         if(!isValid(sender)){
             return false;
         }
-
-        sdr = sender;
         
         if(args.length == 0){
             sender.sendMessage("§e/ban [-s] <player> <severity#/duration/permanent> <reason> - Bans specified player.");
             return true;
         }
         
-        s = 0;
-        
+        int s = 0;
         if(args[0].equalsIgnoreCase("-s"))
             s = 1;
         
@@ -146,18 +77,17 @@ public class YamlBanCommand extends YamlAbstractCommand{
             return true;
         }
         
-        target = YamlCache.getPlayerIgn(args[0+s]);
+        String target = YamlCache.getPlayerIgn(args[0+s]);
         
         if(target == null){
             sender.sendMessage("§ePlayer " + args[0+s] + " has never been on the server.");
             return false;
         }
 
-        tgtUuid = m.getUuid(target);
+        UUID tgtUuid = m.getUuid(target);
         
-        value = args[1+s];
-        String annValue = args[1+s];
-        reason = "";
+        String value = args[1+s];
+        String reason = "";
         if(args.length > 2+s){
             reason = args[2+s];
             for(int x = 3+s; x < args.length;x++){
@@ -166,47 +96,51 @@ public class YamlBanCommand extends YamlAbstractCommand{
         }
 
         if(reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
-            reason = m.getConfig().getString("default-reason");
+            reason = m.parseMessage(m.getConfig().getString("defaults.reason"));
 
-        if(reason.equalsIgnoreCase(""))
+        String annType;
+        if(reason.isEmpty())
             annType = "banNoRsn";
         else
             annType = "ban";
 
-        proTarget = m.getOfflinePlayer(target);
-
-        type = YamlAbstractBanCommand.getBanType(value);
-
-        if(type == null){
+        if(m.getType(value) == null){
             sender.sendMessage("§cEnter a valid ban option.");
             return true;
         }
+
+        BanType banType = m.getBanType(value);
+        String duration = m.getSevDuration(value);
+        String annValue = duration;
+        m.checkSevValues(tgtUuid, value);
         
         if(YamlCache.isPlayerBanned(tgtUuid) && !sender.hasPermission("custombansplus.overwrite")){
             sender.sendMessage(ChatColor.RED + "Player " + target + " is already banned and you don't have overwrites permission.");
             return true;
         }
-        if(YamlCache.isIpBanned(m.getYamlIp(target))){
+        if(YamlCache.isIpBanned(YamlCache.playerCache.get(tgtUuid).getIp())){
             sender.sendMessage("§cPlayer " + target + " is already IP banned. Overwrite the ban by doing /ipban.");
             return true;
         }
-        
-        Bukkit.getScheduler().runTask(m, () -> {
-            type = setBanned();
-        
-            banPage();
-            YamlAbstractBanCommand.addHistory(target, sender.getName(), "ban", null, null);
 
-            YamlCache.setBan(tgtUuid);
-        });
+        int fs = s;
+        String fReason = reason;
 
-        if(annValue.equalsIgnoreCase("perm")) annValue = "Permanent";
+        new Thread(() -> {
+            setBanned(sender, tgtUuid, banType, fReason, duration);
+            YamlAbstractBanCommand.banPage(tgtUuid);
+            YamlAbstractBanCommand.addHistory(YamlCache.getBannedObject(tgtUuid));
 
-        if(annValue.equalsIgnoreCase("Permanent")) annType = "perm" + annType;
-        else annType = "temp" + annType;
+            String fAnnType = annType;
 
-        if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), annValue, reason, annType);
-        else YamlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), annValue, reason, annType);
+            if (value.equalsIgnoreCase("perm")) fAnnType = "perm" + fAnnType;
+            else fAnnType = "temp" + fAnnType;
+
+            String fAnnValue = "";
+            if (annValue.equalsIgnoreCase("perm")) fAnnValue = "Permanent";
+            if (fs == 0) YamlAbstractAnnouncer.getAnnouncer(target, sender.getName(), fAnnValue, fReason, fAnnType);
+            else YamlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), fAnnValue, fReason, fAnnType);
+        }).start();
         
         return true;
         
@@ -224,7 +158,7 @@ public class YamlBanCommand extends YamlAbstractCommand{
             return tabComplete;
         }
             
-        stab = 0;
+        int stab = 0;
         if(args[0].equalsIgnoreCase("-s"))
             stab++;
 

@@ -1,9 +1,11 @@
 package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -24,7 +26,7 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
         super("cbphistory", "custombansplus.ban", false);
     }
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static SqlGUIItems item = new SqlGUIItems();
     static int[] slot = { 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38,
             39, 40, 41, 42, 43 };
@@ -40,26 +42,26 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
     String strPlayer;
     Player player;
 
-    Material getMaterial(String type, String[][] history, int hi, String target){
+    Material getMaterial(String type, String[][] history, int hi, UUID tgtUuid){
         switch(type){
 
             case "Temp Ban":
             case "Perm Ban":
-                if(history[hi][7].equalsIgnoreCase("Active") && !SqlCache.isBanLifted(target))
+                if(history[hi][7].equalsIgnoreCase("Active") && !SqlCache.isBanLifted(tgtUuid))
                     return Material.DIAMOND_SWORD;
                 else
                     return Material.IRON_SWORD;
 
             case "Temp IP Ban":
             case "Perm IP Ban":
-                if(history[hi][7].equalsIgnoreCase("Active") && !SqlCache.isBanLifted(target))
+                if(history[hi][7].equalsIgnoreCase("Active") && !SqlCache.isBanLifted(tgtUuid))
                     return Material.DIAMOND_SWORD;
                 else
                     return Material.GOLDEN_SWORD;
 
             case "Temp Mute":
             case "Perm Mute":
-                if(history[hi][7].equalsIgnoreCase("Active") && !SqlCache.isMuteLifted(target))
+                if(history[hi][7].equalsIgnoreCase("Active") && !SqlCache.isMuteLifted(tgtUuid))
                     return Material.BLAZE_ROD;
                 else
                     return Material.STICK;
@@ -138,7 +140,7 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
 
     }
 
-    public void setPunishments(Inventory histGUI, String target, String strPlayer) {
+    public void setPunishments(Inventory histGUI, UUID tgtUuid, String strPlayer) {
 
         slotIndex = 0;
 
@@ -148,7 +150,7 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
         while (slotIndex < slot.length) {
 
             String type = history[hi][1];
-            Material mat = getMaterial(type, history, hi, target);
+            Material mat = getMaterial(type, history, hi, tgtUuid);
 
             ItemStack punishment = new ItemStack(mat, 1);
             ItemMeta meta = punishment.getItemMeta();
@@ -170,12 +172,16 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
             switch(history[hi][7]){
 
                 case "Active":
-                    if(SqlCache.isBanLifted(target) && SqlCache.isMuteLifted(target)){
-                        SqlCache.removeBan(target);
-                        SqlCache.removeIpBan(m.getSqlIp(target), "Lifted", null);
-                        SqlCache.removeMute(target);
-                        SqlMethods.updateHistoryStatus(target, "Ban", "Lifted", null);
-                        SqlMethods.updateHistoryStatus(target, "Mute", "Lifted", null);
+                    if(SqlCache.isBanLifted(tgtUuid) && SqlCache.isMuteLifted(tgtUuid)){
+                        SqlCache.removeBan(tgtUuid, "Lifted", null);
+                        SqlCache.removeIpBan(m.getSqlIp(tgtUuid), "Lifted", null);
+                        SqlCache.removeMute(tgtUuid, "Lifted", null);
+                        try {
+                            SqlMethods.updateHistoryStatus(tgtUuid, "Ban", "Lifted", null);
+                            SqlMethods.updateHistoryStatus(tgtUuid, "Mute", "Lifted", null);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
                     }else{
                         lore.add("§aStatus: §cActive");
                         if (!history[hi][5].equalsIgnoreCase("Permanent"))
@@ -236,42 +242,52 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
         }
 
         target = SqlCache.getPlayerIgn(args[0]);
+        UUID tgtUuid = m.getUuid(target);
 
         if(target == null){
             sender.sendMessage("§cPlayer " + args[0] + " has never entered the server.");
             return false;
         }
 
-        if (!SqlMethods.playerHasHistory(target)) {
-            sender.sendMessage("§aPlayer " + target + " does not have any history.");
-            return true;
+        try {
+            if (!SqlMethods.playerHasHistory(tgtUuid)) {
+                sender.sendMessage("§aPlayer " + target + " does not have any history.");
+                return true;
+            }
+        } catch (SQLException e1) {
+            e1.printStackTrace();
         }
 
-        histGUI = Bukkit.createInventory(null, 54, "§8§lC§4§lB§8§lP §8" + t.get(player.getName()) + "'s History");
+        new Thread(() -> {
 
-        Bukkit.getScheduler().runTask(m, () -> {
+            histGUI = Bukkit.createInventory(null, 54, "§8§lC§4§lB§8§lP §8" + t.get(player.getName()) + "'s History");
 
             histGUI = Bukkit.createInventory(null, 54, "§8§lC§4§lB§8§lP §8" + target + "'s History");
             setInventory(histGUI);
 
             t.put(strPlayer, target);
 
-            String[][] history = SqlMethods.getHistories(target);
+            String[][] history = new String[0][0];
+            try {
+                history = SqlMethods.getHistories(tgtUuid);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
             histTarget.put(target, history);
 
             histIndex.put(strPlayer, 0);
             preHistIndex.remove(strPlayer);
             histPage.remove(strPlayer);
 
-            setPunishments(histGUI, target, strPlayer);
+            setPunishments(histGUI, tgtUuid, strPlayer);
             int hi = histIndex.get(strPlayer);
 
             if(hi != history.length) histGUI.setItem(50, item.histNextPage());
             histPage.put(strPlayer, 0);
 
-            player.openInventory(histGUI);
+            Bukkit.getScheduler().runTask(m, () -> player.openInventory(histGUI));
 
-        });
+        }).start();
 
         return true;
     
@@ -282,57 +298,61 @@ public class SqlHistoryCommand extends SqlAbstractCommand implements Listener {
 
         String title = event.getView().getTitle();
         
-        try{
-            if(!title.substring(title.length()-7).equalsIgnoreCase("History"))
-                return;
-            }catch(StringIndexOutOfBoundsException exc){
-                return;
-        }
-    
-        event.setResult(Result.DENY);
+        new Thread(() -> {
 
-        Inventory inv = event.getClickedInventory();
-        if (inv == null || inv.getType().toString().equalsIgnoreCase("PLAYER")) {
-            return;
-        }
-
-        if (event.getCurrentItem() == null)
-            return;
-
-        //----------------------------------------------------------------------//
+            try{
+                if(!title.substring(title.length()-7).equalsIgnoreCase("History"))
+                    return;
+                }catch(StringIndexOutOfBoundsException exc){
+                    return;
+            }
         
-        Player p = (Player) event.getWhoClicked();
-        int hi = histIndex.get(p.getName());
-        String[][] history = histTarget.get(t.get(p.getName()));
-
-        String is = event.getCurrentItem().getItemMeta().getLocalizedName();
-
-        switch(is){
-
-            case "hist Next Page":
-                preHistIndex.put(p.getName(), hi);
-                setInventory(histGUI);
-                setPunishments(histGUI, t.get(p.getName()), p.getName());
-                hi = histIndex.get(p.getName());
-                if(hi != history.length) histGUI.setItem(50, item.histNextPage());
-                histPage.replace(p.getName(), histPage.get(p.getName())+1);
-                histGUI.setItem(48, item.histPrevPage());
-                p.openInventory(histGUI);
+            event.setResult(Result.DENY);
+    
+            Inventory inv = event.getClickedInventory();
+            if (inv == null || inv.getType().toString().equalsIgnoreCase("PLAYER")) {
                 return;
-
-            case "hist Prev Page":
-                hi = preHistIndex.get(p.getName()) - 28;
-                histIndex.replace(p.getName(), hi);
-                preHistIndex.put(p.getName(), hi);
-                setInventory(histGUI);
-                setPunishments(histGUI, t.get(p.getName()), p.getName());
-                histGUI.setItem(50, item.histNextPage());
-                histPage.replace(p.getName(), histPage.get(p.getName())-1);
-                if(histPage.get(p.getName()) != 0) histGUI.setItem(48, item.histPrevPage());
-                p.openInventory(histGUI);
+            }
+    
+            if (event.getCurrentItem() == null)
                 return;
+    
+            //----------------------------------------------------------------------//
+            
+            Player p = (Player) event.getWhoClicked();
+            int hi = histIndex.get(p.getName());
+            String[][] history = histTarget.get(t.get(p.getName()));
+    
+            String is = event.getCurrentItem().getItemMeta().getLocalizedName();
+    
+            switch(is){
+    
+                case "hist Next Page":
+                    preHistIndex.put(p.getName(), hi);
+                    setInventory(histGUI);
+                    setPunishments(histGUI, m.getUuid(t.get(p.getName())), p.getName());
+                    hi = histIndex.get(p.getName());
+                    if(hi != history.length) histGUI.setItem(50, item.histNextPage());
+                    histPage.replace(p.getName(), histPage.get(p.getName())+1);
+                    histGUI.setItem(48, item.histPrevPage());
+                    Bukkit.getScheduler().runTask(m, () -> p.openInventory(histGUI));
+                    return;
+    
+                case "hist Prev Page":
+                    hi = preHistIndex.get(p.getName()) - 28;
+                    histIndex.replace(p.getName(), hi);
+                    preHistIndex.put(p.getName(), hi);
+                    setInventory(histGUI);
+                    setPunishments(histGUI, m.getUuid(t.get(p.getName())), p.getName());
+                    histGUI.setItem(50, item.histNextPage());
+                    histPage.replace(p.getName(), histPage.get(p.getName())-1);
+                    if(histPage.get(p.getName()) != 0) histGUI.setItem(48, item.histPrevPage());
+                    Bukkit.getScheduler().runTask(m, () -> p.openInventory(histGUI));
+                    return;
+    
+            }
 
-        }
+        }).start();
 
     }
 

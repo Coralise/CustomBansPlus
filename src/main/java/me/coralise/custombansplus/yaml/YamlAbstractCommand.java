@@ -15,7 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  *
  * @author coralise
  */
-public abstract class YamlAbstractCommand implements CommandExecutor, TabCompleter{
+public abstract class YamlAbstractCommand implements CommandExecutor, TabCompleter {
     
     public static JavaPlugin plugin;
     public final String permission;
@@ -64,6 +64,8 @@ public abstract class YamlAbstractCommand implements CommandExecutor, TabComplet
         new YamlMuteCommand();
         new YamlUnmuteCommand();
         new YamlWarnCommand();
+        new YamlReportCommand();
+        new YamlReportsCommand();
         
     }
     

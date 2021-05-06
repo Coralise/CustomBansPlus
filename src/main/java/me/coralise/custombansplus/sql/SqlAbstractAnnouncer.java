@@ -2,11 +2,10 @@ package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
 
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 
 public abstract class SqlAbstractAnnouncer {
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static String target;
     static String staff;
     static String duration;
@@ -34,12 +33,9 @@ public abstract class SqlAbstractAnnouncer {
         duration = d;
         reason = r;
 
-        message = parseMessage(m.getConfig().getString(type + "-announcer"));
+        message = parseMessage(m.getConfig().getString("announcers." + type));
 
         System.out.println(message);
-        for(Player p : Bukkit.getOnlinePlayers()){
-            p.sendMessage(message);
-        }
         Bukkit.getOnlinePlayers().forEach(p -> p.sendMessage(message));
 
     }
@@ -51,7 +47,7 @@ public abstract class SqlAbstractAnnouncer {
         duration = d;
         reason = r;
 
-        String message = parseMessage(m.getConfig().getString(type + "-announcer"));
+        String message = parseMessage(m.getConfig().getString("announcers." + type));
 
         if(Bukkit.getPlayer(staff) != null)
             Bukkit.getPlayer(staff).sendMessage("§a§lSilent: §r" + message);

@@ -6,14 +6,18 @@
 package me.coralise.custombansplus.sql;
 
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.enums.BanType;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
 
 /**
  *
@@ -25,59 +29,19 @@ public class SqlBanCommand extends SqlAbstractCommand{
         super("cbpban", "custombansplus.ban", true);
     }
     
-    public static final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
-    String target;
-    String value;
-    String reason;
-    static String type;
-    CommandSender sender;
-    String[] args;
-    ConsoleCommandSender cnsl = Bukkit.getServer().getConsoleSender();
-    String annType;
+    public static final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     
-    public void setBanned(){
+    public void setBanned(CommandSender sender, UUID tgtUuid, BanType banType, String reason, String duration){
         
-        String duration = "";
-        boolean clearInv = false;
-        List<String> cmds = new ArrayList<String>();
-        Double balDeduct = 0.0;
-        
-        switch(type){
-            case "sev":
-                int sevNum = Integer.parseInt(value.substring(1));
-                clearInv = m.getSevConfig().getBoolean(sevNum+".clear-inv");
-                cmds = m.getSevConfig().getStringList(sevNum+".console-commands");
-                balDeduct = m.getSevConfig().getDouble(sevNum+".baldeduct");
-                if(m.getSevConfig().getString(sevNum + ".duration").equalsIgnoreCase("Permanent")){
-                    type = "perm";
-                    duration = "Permanent";
-                    break;
-                }
-                type = "dura";
-                value = m.getSevConfig().getString(sevNum + ".duration");
-                duration = value;
-                break;
-            case "perm":
-                duration = "Permanent";
-                break;
-            case "dura":
-                duration = value;
-                break;
-        }
-
-        m.checkSevValues(target, clearInv, balDeduct, cmds);
-
-        String targetUuid = m.getUuid(target);
-        
-        SqlMethods.setBan(targetUuid, sender, reason, duration);
+        if (sender instanceof Player)
+            SqlCache.setBan(tgtUuid, SqlCache.playerCache.get(tgtUuid).getIp(), banType, reason, duration, m.getUuid(sender));
+        else
+            SqlCache.setBan(tgtUuid, SqlCache.playerCache.get(tgtUuid).getIp(), banType, reason, duration);
         
     }
     
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-
-        this.sender = sender;
-        this.args = args;
 
         if(!isValid(sender)){
             return false;
@@ -98,16 +62,16 @@ public class SqlBanCommand extends SqlAbstractCommand{
             return false;
         }
         
-        target = SqlCache.getPlayerIgn(args[0+s]);
+        String target = SqlCache.getPlayerIgn(args[0+s]);
 
         if (target == null){
             sender.sendMessage(ChatColor.YELLOW + "Player " + args[0+s] + " has never been on the server.");
             return false;
         }
-        
-        value = args[1+s];
 
-        reason = "";
+        UUID tgtUuid = m.getUuid(target);
+
+        String reason = "";
         if(args.length > 2+s){
             reason = args[2+s];
             for(int x = 3+s; x < args.length;x++){
@@ -115,44 +79,52 @@ public class SqlBanCommand extends SqlAbstractCommand{
             }
         }
         if(reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
-            reason = m.getConfig().getString("default-reason");
+            reason = m.parseMessage(m.getConfig().getString("defaults.reason"));
 
+        String annType;
         if(reason.equalsIgnoreCase(""))
             annType = "banNoRsn";
         else
             annType = "ban";
-        
-        type = SqlAbstractBanCommand.getBanType(value);
 
-        if(type == null){
-            sender.sendMessage("§cEnter a valid ban option.");
-            return true;
-        }
-
-        if(SqlCache.isIpBanned(m.getSqlIp(target))){
+        if(SqlCache.isIpBanned(m.getSqlIp(tgtUuid))){
             sender.sendMessage("§cPlayer " + target + " is already IP Banned. Use /ipban instead to overwrite.");
             return false;
         }
-        if(SqlCache.isPlayerBanned(target) && !sender.hasPermission("custombansplus.overwrite")){
+        if(SqlCache.isPlayerBanned(tgtUuid) && !sender.hasPermission("custombansplus.overwrite")){
             sender.sendMessage("§cPlayer " + target + " is already banned and you don't have overwrites permission.");
             return false;
         }
 
-        Bukkit.getScheduler().runTask(m, () -> {
-            
-            SqlMethods.updateHistoryStatus(target, "Ban", "Overwritten", sender);
-      
-            setBanned();
-            SqlAbstractBanCommand.banPage(target);
+        String value = args[1+s];
+        if(m.getType(value) == null){
+            sender.sendMessage("§cEnter a valid ban option.");
+            return true;
+        }
+        String duration = m.getSevDuration(value);
+        BanType banType = m.getBanType(value);
 
-            SqlMethods.addHistory(target, "Ban", null, null);
+        int fs = s;
+        if (duration.equalsIgnoreCase("perm")) annType = "perm" + annType;
+        else annType = "temp" + annType;
+        String fAnnType = annType;
+        String fReason = reason;
 
-            if(value.equalsIgnoreCase("perm")) value = "Permanent";
-            
-        });
+        new Thread(() -> {
+            try {
+                SqlMethods.updateHistoryStatus(tgtUuid, "Ban", "Overwritten", sender);
+                m.checkSevValues(tgtUuid, value);
+                setBanned(sender, tgtUuid, banType, fReason, duration);;
 
-        if (s == 0) SqlAbstractAnnouncer.getAnnouncer(target, sender.getName(), args[1+s], reason, annType);
-        else SqlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), args[1+s], reason, annType);
+                SqlAbstractBanCommand.banPage(tgtUuid);
+                SqlMethods.addHistory(tgtUuid, "Ban", null, null);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            if (fs == 0) SqlAbstractAnnouncer.getAnnouncer(target, sender.getName(), args[1+fs], fReason, fAnnType);
+            else SqlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), args[1+fs], fReason, fAnnType);
+        }).start();
         
         return true;
         

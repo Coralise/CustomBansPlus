@@ -1,6 +1,8 @@
 package me.coralise.custombansplus;
 
 import me.coralise.custombansplus.yaml.*;
+import me.coralise.custombansplus.enums.BanType;
+import me.coralise.custombansplus.enums.MuteType;
 import me.coralise.custombansplus.sql.*;
 
 import java.io.File;
@@ -27,10 +29,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class CustomBansPlus extends JavaPlugin implements Listener {
 
+    //#region File Instantiations
     private File severitiesFile = new File(getDataFolder(), "severities.yml");
     private FileConfiguration severitiesConfig = YamlConfiguration.loadConfiguration(severitiesFile);
     private File ociFile = new File(getDataFolder(), "OfflineCI.yml");
     private FileConfiguration ociConfig = YamlConfiguration.loadConfiguration(ociFile);
+    private final File reportsFile = new File(getDataFolder(), "reports.yml");
+    private final FileConfiguration reportsConfig = YamlConfiguration.loadConfiguration(reportsFile);
+    private final File reportsBLFile = new File(getDataFolder(), "reportsblacklist.yml");
+    private final FileConfiguration reportsBLConfig = YamlConfiguration.loadConfiguration(reportsBLFile);
     private final File altsFile = new File(getDataFolder(), "accounts.yml");
     private final FileConfiguration altsConfig = YamlConfiguration.loadConfiguration(altsFile);
     private final File bansFile = new File(getDataFolder(), "bans.yml");
@@ -39,6 +46,8 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     private final FileConfiguration historiesConfig = YamlConfiguration.loadConfiguration(historiesFile);
     private final File mutesFile = new File(getDataFolder(), "mutes.yml");
     private final FileConfiguration mutesConfig = YamlConfiguration.loadConfiguration(mutesFile);
+    //#endregion
+
     static CustomBansPlus m;
     public boolean hasVault = false;
     private boolean yaml = false;
@@ -52,8 +61,8 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
 
-        GetJavaPlugin.setPlugin(this);
-        m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+        ClassGetter.setPlugin(this);
+        m = (CustomBansPlus) ClassGetter.getPlugin();
         pm = getServer().getPluginManager();
 
         int pluginId = 10668;
@@ -73,7 +82,7 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
             return;
         }
      
-        if (getConfig().getBoolean("toggle-update-notifs")) new UpdateChecker(this);
+        if (getConfig().getBoolean("updates.notify")) new UpdateChecker(this);
 
         if (pm.getPlugin("Vault") == null) {
             System.out.println("§e[CBP]§c Vault plugin not found, baldeduct function is disabled.");
@@ -83,6 +92,7 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
         }
 
         this.saveDefaultConfig();
+
         if(!severitiesFile.exists()){
             saveResource("severities.yml", false);
             severitiesFile = new File(getDataFolder(), "severities.yml");
@@ -93,8 +103,14 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
             ociFile = new File(getDataFolder(), "OfflineCI.yml");
             ociConfig = YamlConfiguration.loadConfiguration(ociFile);
         }
+        if(!reportsFile.exists()){
+            saveResource("reports.yml", false);
+        }
+        if(!reportsBLFile.exists()){
+            saveResource("reportsblacklist.yml", false);
+        }
     
-        toggleSQL = getConfig().getBoolean("enable-sql");
+        toggleSQL = getConfig().getBoolean("sql.enable");
 
         if(toggleSQL && SqlMethods.getConn()){
             System.out.println("§e[CBP] §aDatabase connection acquired.");
@@ -121,7 +137,7 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
         }
 
     }
-    
+
     @Override
     public void onDisable(){
 
@@ -135,6 +151,8 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     public String getUpdate(){
         return update;
     }
+    
+    //#region File Getters
     public FileConfiguration getSevConfig(){
         return severitiesConfig;
     } 
@@ -146,6 +164,18 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     } 
     public File getOciFile(){
         return ociFile;
+    }
+    public FileConfiguration getReportsConfig(){
+        return reportsConfig;
+    } 
+    public File getReportsFile(){
+        return reportsFile;
+    }
+    public FileConfiguration getReportsBLConfig(){
+        return reportsBLConfig;
+    } 
+    public File getReportsBLFile(){
+        return reportsBLFile;
     }
     public FileConfiguration getAltsConfig(){
         return altsConfig;
@@ -171,6 +201,7 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     public File getMutesFile(){
         return mutesFile;
     }
+    //#endregion
 
     public void registerYAML(){
 
@@ -206,12 +237,16 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     }
 
     /**
-     * Calculates and returns the unban date.
+     * Calculates and returns the unpunish date.
      * 
      * @param value 1h, 2d, perm, etc.
-     * @return
+     * @return string value of unpunish date.
      */
-    public String calculateUnpunishDate(String value){
+    public String calculateUnpunishDateString(String value){
+
+        value = m.getSevDuration(value);
+
+        if (value.contains("perm")) return null;
 
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date cDate = new Date();
@@ -242,6 +277,42 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
 
     }
 
+    /**
+     * Calculates and returns the unpunish date.
+     * 
+     * @param value 1h, 2d, perm, etc.
+     * @return date value of unpunish date.
+     */
+    public Date calculateUnpunishDateDate(String value){
+
+        Date cDate = new Date();
+        long cDateMilli = cDate.getTime();
+        long addMillis = 0;
+        String[] loValues = value.split("(?<=[smhd])");
+        for(String v : loValues){
+            long loValue = Long.parseLong(v.substring(0,v.length()-1));
+            switch(v.charAt(v.length()-1)){
+                case 's':
+                    addMillis += loValue * 1000;
+                    break;
+                case 'm':
+                    addMillis += loValue * 60000;
+                    break;
+                case 'h':
+                    addMillis += loValue * 3600000;
+                    break;
+                case 'd':
+                    addMillis += loValue * 86400000;
+                    break;
+            }
+        }
+
+        Date uDate = new Date(cDateMilli + addMillis);
+
+        return uDate;
+
+    }
+
     public boolean isValueValid(String value){
         if(value.equalsIgnoreCase("perm")) return true;
         String[] valChars = new String[0];
@@ -261,19 +332,12 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
 
     /**
      * Returns the string time remaining from the current date until the specified date.
-     * @param unpunishDate
+     * @param date
      * @return
      */
-    public String getTimeRemaining(String unpunishDate){
+    public String getTimeRemaining(Date uDate){
 
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date cDate = new Date();
-        Date uDate = new Date();
-        try {
-            uDate = formatter.parse(unpunishDate);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
 
         long cDateMilli = cDate.getTime();
         long uDateMilli = uDate.getTime();
@@ -295,15 +359,47 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     }
 
     /**
+     * Returns the string time remaining from the current date until the specified date.
+     * @param date
+     * @return
+     */
+    public String getTimeRemaining(String uDate){
+
+        Date cDate = new Date();
+
+        long cDateMilli = cDate.getTime();
+        long uDateMilli = new Date().getTime();
+        try {
+            uDateMilli = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(uDate).getTime();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        long difference = uDateMilli - cDateMilli;
+
+        long days = difference / 86400000;
+        difference = difference % 86400000;
+        long hours = difference / 3600000;
+        difference = difference % 3600000;
+        long minutes = difference / 60000;
+        difference = difference % 60000;
+        long seconds = difference / 1000;
+
+        String timeRemaining = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
+
+        return timeRemaining;
+
+    }
+
+    /**
      * Returns the IP of the target in yaml format (. to -).
      * <p>
      * Returns null if player's IP is not logged yet.
-     * @param ign
      * @return
      */
-    public String getYamlIp(String ign){
-        if(!getOfflinePlayer(ign).isOnline()) return YamlCache.getYamlIp(m.getUuid(ign));
-        String currentIP = Bukkit.getPlayer(ign).getAddress().toString();
+    public String getYamlIp(UUID uuid){
+        if(!getOfflinePlayer(uuid).isOnline()) return YamlCache.getYamlIp(uuid);
+        String currentIP = Bukkit.getPlayer(uuid).getAddress().toString();
         currentIP = currentIP.replace('.', '-');
         currentIP = currentIP.substring(1, currentIP.indexOf(":"));
         return currentIP;
@@ -316,9 +412,9 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
      * @param ign
      * @return
      */
-    public String getSqlIp(String ign){
-        if(!getOfflinePlayer(ign).isOnline()) return SqlCache.getSqlIp(ign);
-        String currentIP = Bukkit.getPlayer(ign).getAddress().toString();
+    public String getSqlIp(UUID uuid){
+        if(!getOfflinePlayer(uuid).isOnline()) return SqlCache.getSqlIp(uuid);
+        String currentIP = Bukkit.getPlayer(uuid).getAddress().toString();
         currentIP = currentIP.substring(1, currentIP.indexOf(":"));
         return currentIP;
     }
@@ -330,9 +426,9 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
      * @param balDeduct
      * @param cmds
      */
-    public void checkSevValues(String target, boolean clearInv, double balDeduct, List<String> cmds){
+    public void checkSevValues(UUID uuid, boolean clearInv, double balDeduct, List<String> cmds){
 
-        OfflinePlayer proTarget = getOfflinePlayer(target);
+        OfflinePlayer proTarget = getOfflinePlayer(uuid);
 
         if (clearInv) {
             if (proTarget.isOnline()) {
@@ -340,10 +436,10 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
                 plTarget.getInventory().clear();
             } else {
                 if(sql){
-                    SqlCache.getOciCache().add(m.getUuid(target));
+                    SqlCache.getOciCache().add(uuid);
                     m.updateSqlOci();
                 }else if(yaml){
-                    YamlCache.getOciCache().add(m.getUuid(target));
+                    YamlCache.getOciCache().add(uuid);
                     m.updateYamlOci();
                 }
                     
@@ -352,13 +448,12 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
 
         if (m.hasVault && balDeduct != 0.0) {
             double deduct = AbstractEconomy.getEconomy().getBalance(proTarget) * balDeduct;
-            String command = "eco take " + target + " " + deduct;
-            Bukkit.dispatchCommand(cnsl, command);
+            AbstractEconomy.getEconomy().withdrawPlayer(proTarget, deduct);
         }
 
         if (!cmds.isEmpty()) {
             for (String cmd : cmds) {
-                cmd = cmd.replace("%player%", target);
+                cmd = cmd.replace("%player%", getName(uuid.toString()));
                 Bukkit.dispatchCommand(cnsl, cmd);
             }
         }
@@ -370,11 +465,14 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
      * @param target
      * @param severity = sN
      */
-    public void checkSevValues(String target, String severity){
+    public void checkSevValues(UUID uuid, String value){
 
-        OfflinePlayer proTarget = getOfflinePlayer(target);
+        if (!(value.length() >= 2 && value.charAt(0) == 's' && m.getSevConfig().getKeys(false).contains(value.substring(1))))
+            return;
 
-        int sevNum = Integer.parseInt(severity.substring(1));
+        OfflinePlayer proTarget = getOfflinePlayer(uuid);
+
+        int sevNum = Integer.parseInt(value.substring(1));
         boolean clearInv = m.getSevConfig().getBoolean(sevNum+".clear-inv");
         List<String> cmds = m.getSevConfig().getStringList(sevNum+".console-commands");
         double balDeduct = m.getSevConfig().getDouble(sevNum+".baldeduct");
@@ -385,10 +483,10 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
                 plTarget.getInventory().clear();
             } else {
                 if(sql){
-                    SqlCache.getOciCache().add(m.getUuid(target));
+                    SqlCache.getOciCache().add(uuid);
                     m.updateSqlOci();
                 }else if(yaml){
-                    YamlCache.getOciCache().add(m.getUuid(target));
+                    YamlCache.getOciCache().add(uuid);
                     m.updateYamlOci();
                 }
                     
@@ -397,27 +495,27 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
 
         if (m.hasVault && balDeduct != 0.0) {
             double deduct = AbstractEconomy.getEconomy().getBalance(proTarget) * balDeduct;
-            String command = "eco take " + target + " " + deduct;
-            Bukkit.dispatchCommand(cnsl, command);
+            AbstractEconomy.getEconomy().withdrawPlayer(proTarget, deduct);
         }
 
         if (!cmds.isEmpty()) {
             for (String cmd : cmds) {
-                cmd = cmd.replace("%player%", target);
-                Bukkit.dispatchCommand(cnsl, cmd);
+                cmd = cmd.replace("%player%", getName(uuid.toString()));
+                String fCmd = cmd;
+                Bukkit.getScheduler().runTask(this, () -> Bukkit.dispatchCommand(cnsl, fCmd));
             }
         }
 
     }
 
-    public String getUuid(String target){
-        return m.getOfflinePlayer(target).getUniqueId().toString();
+    public UUID getUuid(String target){
+        return Bukkit.getOfflinePlayer(target).getUniqueId();
     }
-    public String getUuid(CommandSender target){
-        return m.getOfflinePlayer(target.getName()).getUniqueId().toString();
+    public UUID getUuid(CommandSender target){
+        return Bukkit.getOfflinePlayer(target.getName()).getUniqueId();
     }
-    public OfflinePlayer getOfflinePlayer(String target){
-        return Bukkit.getOfflinePlayer(target);
+    public OfflinePlayer getOfflinePlayer(UUID uuid){
+        return Bukkit.getOfflinePlayer(uuid);
     }
     public String getName(String uuid){
         if(uuid.equalsIgnoreCase("CONSOLE")) return "CONSOLE";
@@ -426,7 +524,7 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
 
     public void updateSqlOci(){
 
-        ArrayList<String> newList = new ArrayList<String>();
+        ArrayList<UUID> newList = new ArrayList<UUID>();
 
         SqlCache.getOciCache().forEach(uuid -> newList.add(uuid));
 
@@ -441,7 +539,7 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
 
     public void updateYamlOci(){
 
-        ArrayList<String> newList = new ArrayList<String>();
+        ArrayList<UUID> newList = new ArrayList<UUID>();
 
         YamlCache.getOciCache().forEach(uuid -> newList.add(uuid));
 
@@ -472,6 +570,103 @@ public class CustomBansPlus extends JavaPlugin implements Listener {
     public String getYamlUnmuteDate(String uuid){
         String strDate = m.getMutesConfig().getString(uuid+".unmute-by");
         return strDate;
+    }
+
+    public String getSevDuration(String value) {
+
+        if (!(value.length() >= 2 && value.charAt(0) == 's' && m.getSevConfig().getKeys(false).contains(value.substring(1))))
+            return value;
+
+        return m.getSevConfig().getString(value.substring(1) + ".duration");
+
+    }
+
+    public String getType(String value){
+
+        if (value.equalsIgnoreCase("perm"))
+            return "perm";
+        else if (value.length() >= 2 && value.charAt(0) == 's' && m.getSevConfig().getKeys(false).contains(value.substring(1)))
+            return "sev";
+        else if (m.isValueValid(value)) {
+            return "dura";
+        } else {
+            return null;
+        }
+
+    }
+
+    public BanType getBanTypeIP (String value) {
+
+        value = getSevDuration(value);
+
+        if (value.contains("perm"))
+            return BanType.PERM_IP_BAN;
+        else
+            return BanType.TEMP_IP_BAN;
+
+    }
+
+    public BanType getBanType (String value) {
+
+        value = getSevDuration(value);
+
+        if (value.contains("perm"))
+            return BanType.PERM_BAN;
+        else
+            return BanType.TEMP_BAN;
+
+    }
+
+    public BanType getBanTypeFromString (String value) {
+
+        value = getSevDuration(value);
+        BanType banType;
+
+        if (value.contains("perm")) {
+            banType = BanType.PERM_BAN;
+            if (value.contains("IP"))
+                banType = BanType.PERM_IP_BAN;
+        } else {
+            banType = BanType.TEMP_BAN;
+            if (value.contains("IP"))
+                banType = BanType.TEMP_IP_BAN;
+        }
+        return banType;
+
+    }
+
+    public MuteType getMuteType (String value) {
+
+        value = getSevDuration(value);
+
+        if (value.contains("perm"))
+            return MuteType.PERM_MUTE;
+        else
+            return MuteType.TEMP_MUTE;
+
+    }
+
+    public MuteType getMuteTypeFromString (String value) {
+
+        value = getSevDuration(value);
+        MuteType muteType;
+
+        if (value.contains("perm")) {
+            muteType = MuteType.PERM_MUTE;
+        } else {
+            muteType = MuteType.TEMP_MUTE;
+        }
+        return muteType;
+        
+    }
+
+    public String parseMessage (String msg) {
+        String newMsg = msg.replace("&", "§");
+        newMsg = newMsg.replace(" /n ", "\n");
+        newMsg = newMsg.replace("/n ", "\n");
+        newMsg = newMsg.replace(" /n", "\n");
+        newMsg = newMsg.replace("/n", "\n");
+        return newMsg;
     }
     
 }

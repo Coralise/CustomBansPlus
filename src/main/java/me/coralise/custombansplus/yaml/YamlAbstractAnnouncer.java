@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 
 public abstract class YamlAbstractAnnouncer {
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static String target;
     static String staff;
     static String duration;
@@ -33,7 +33,7 @@ public abstract class YamlAbstractAnnouncer {
         duration = d;
         reason = r;
 
-        String message = parseMessage(m.getConfig().getString(type + "-announcer"));
+        String message = parseMessage(m.getConfig().getString("announcers." + type));
 
         System.out.println(message);
         for(Player p : Bukkit.getOnlinePlayers()){
@@ -49,7 +49,7 @@ public abstract class YamlAbstractAnnouncer {
         duration = d;
         reason = r;
 
-        String message = parseMessage(m.getConfig().getString(type + "-announcer"));
+        String message = parseMessage(m.getConfig().getString("announcers." + type));
 
         if(Bukkit.getPlayer(staff) != null)
             Bukkit.getPlayer(staff).sendMessage("§a§lSilent: §r" + message);

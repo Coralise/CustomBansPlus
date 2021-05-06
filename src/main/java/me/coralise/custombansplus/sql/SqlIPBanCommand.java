@@ -1,13 +1,15 @@
 package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.enums.BanType;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 public class SqlIPBanCommand extends SqlAbstractCommand {
@@ -16,47 +18,26 @@ public class SqlIPBanCommand extends SqlAbstractCommand {
         super("cbpipban", "custombansplus.ban", true);
     }
 
-    public final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     String target;
+    UUID tgtUuid;
     String value;
+    String duration;
     String reason;
     String targetIp;
-    static String type;
+    BanType banType;
     CommandSender sender;
-    ConsoleCommandSender cnsl = Bukkit.getServer().getConsoleSender();
-    String valueOption;
     String annType;
 
-    public String setIpBan(){
-        
-        String duration = "";
-        
-        switch(type){
-            case "sev":
-                int sevNum = Integer.parseInt(value.substring(1));
-                if(m.getSevConfig().getString(sevNum + ".duration").equalsIgnoreCase("Permanent")){
-                    type = "perm";
-                    duration = "Permanent";
-                    break;
-                }
-                type = "dura";
-                value = m.getSevConfig().getString(sevNum + ".duration");
-                duration = value;
-                break;
-            case "perm":
-                duration = "Permanent";
-                break;
-            case "dura":
-                duration = value;
-                break;
-        }
+    public void setIpBan(){
 
-        String bannerUuid = "CONSOLE";
-        if(sender instanceof Player) bannerUuid = m.getUuid(sender);
+        banType = m.getBanTypeIP(value);
+        SqlCache.getSameIps(targetIp).forEach(uuid -> m.checkSevValues(uuid, value));
 
-        SqlMethods.setIpBan(targetIp, bannerUuid, reason, duration);
-        
-        return type;
+        if (sender instanceof Player)
+            SqlCache.setBan(targetIp, banType, reason, duration, m.getUuid(sender));
+        else 
+            SqlCache.setBan(targetIp, banType, reason, duration);
         
     }
 
@@ -68,7 +49,6 @@ public class SqlIPBanCommand extends SqlAbstractCommand {
         }
 
         this.sender = sender;
-        type = null;
         
         if(args.length == 0){
             sender.sendMessage("§e/ipban [-s] <player> <snum/duration/permanent> <reason> - Bans specified player.");
@@ -77,71 +57,72 @@ public class SqlIPBanCommand extends SqlAbstractCommand {
         
         int s = 0;
             
-            if(args[0].equalsIgnoreCase("-s"))
-                s = 1;
-            
-            if(args.length < 2+s){
-                sender.sendMessage("§cPlease enter a valid ban option.");
-                return true;
+        if(args[0].equalsIgnoreCase("-s"))
+            s = 1;
+        
+        target = SqlCache.getPlayerIgn(args[0+s]);
+
+        if (target == null){
+            sender.sendMessage("§ePlayer " + args[0+s] + " has never been on the server.");
+            return true;
+        }
+
+        tgtUuid = m.getUuid(target);
+        targetIp = m.getSqlIp(tgtUuid);
+        
+        value = args[1+s];
+
+        if (m.getType(value) == null) {
+            sender.sendMessage("§cPlease enter a valid ban option.");
+            return true;
+        }
+        duration = m.getSevDuration(value);
+        banType = m.getBanTypeIP(value);
+
+        reason = "";
+        if(args.length > 2+s){
+            reason = args[2+s];
+            for(int x = 3+s; x < args.length;x++){
+                reason = reason.concat(" " + args[x]);
             }
-            
-            target = SqlCache.getPlayerIgn(args[0+s]);
+        }
 
-            if (target == null){
-                sender.sendMessage("§ePlayer " + args[0+s] + " has never been on the server.");
-                return true;
-            }
-            
-            value = args[1+s];
-            valueOption = args[1+s];
+        if(reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
+            reason = m.parseMessage(m.getConfig().getString("defaults.reason"));
+        if(reason.equalsIgnoreCase(""))
+            annType = "ipbanNoRsn";
+        else
+            annType = "ipban";
 
-            reason = "";
-            if(args.length > 2+s){
-                reason = args[2+s];
-                for(int x = 3+s; x < args.length;x++){
-                    reason = reason.concat(" " + args[x]);
-                }
-            }
+        if(SqlCache.isIpBanned(targetIp) && !sender.hasPermission("custombansplus.overwrite")){
+            sender.sendMessage("§cIP is already banned and you don't have overwrites permission.");
+            return true;
+        }
 
-            if(reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
-                reason = m.getConfig().getString("default-reason");
-            if(reason.equalsIgnoreCase(""))
-                annType = "ipbanNoRsn";
-            else
-                annType = "ipban";
+        if (duration.equalsIgnoreCase("perm")) annType = "perm" + annType;
+        else annType = "temp" + annType;
 
-            targetIp = m.getSqlIp(target);
-            
-            type = SqlAbstractBanCommand.getBanType(value);
+        int fs = s;
 
-            if(type == null){
-                sender.sendMessage("§cEnter a valid ban option.");
-                return true;
-            }
-
-            if(SqlCache.isIpBanned(targetIp) && !sender.hasPermission("custombansplus.overwrite")){
-                sender.sendMessage("§cIP is already banned and you don't have overwrites permission.");
-                return true;
-            }
-
-            Bukkit.getScheduler().runTask(m, () -> {
-         
+        new Thread(() -> {
+            try {
+                SqlMethods.updateHistoryStatus(tgtUuid, "Ban", "Overwritten", sender);
                 setIpBan();
-                
-                SqlCache.getSameIps(targetIp).forEach(p -> {
-                    SqlMethods.updateHistoryStatus(p, "Ban", "Overwritten", sender);
-                    m.checkSevValues(p, valueOption);
-                    SqlMethods.banPlayer(p);
-                    SqlMethods.addHistory(p, "Ban", null, null);
-                    SqlAbstractBanCommand.banPage(p);
+                Bukkit.getOnlinePlayers().stream().filter(p -> m.getSqlIp(p.getUniqueId()).equalsIgnoreCase(targetIp)).forEach(p -> {
+                    SqlAbstractBanCommand.banPage(p.getUniqueId());
+                    try {
+                        SqlMethods.addHistory(p.getUniqueId(), "Ban", sender, reason);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 });
-            
-                if(value.equalsIgnoreCase("perm")) value = "Permanent";
-                
-            });
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
 
-            if (s == 0) SqlAbstractAnnouncer.getAnnouncer(target, sender.getName(), args[1+s], reason, annType);
-            else SqlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), args[1+s], reason, annType);
+            if (fs == 0) SqlAbstractAnnouncer.getAnnouncer(target, sender.getName(), args[1+fs], reason, annType);
+            else SqlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), args[1+fs], reason, annType);
+        }).start();
 
         return true;
 

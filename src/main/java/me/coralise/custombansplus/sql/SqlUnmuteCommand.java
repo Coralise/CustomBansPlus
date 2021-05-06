@@ -2,6 +2,7 @@ package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -13,7 +14,7 @@ public class SqlUnmuteCommand extends SqlAbstractCommand {
         super("cbpunmute", "custombansplus.unmute", true);
     }
 
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -39,16 +40,16 @@ public class SqlUnmuteCommand extends SqlAbstractCommand {
             sender.sendMessage("§cPlayer " + args[0+s] + " has never been in the server.");
             return true;
         }
+        UUID tgtUuid = m.getUuid(target);
 
-        if (!SqlCache.isPlayerMuted(target)) {
+        if (!SqlCache.isPlayerMuted(tgtUuid)) {
             sender.sendMessage("§cPlayer " + target + " is not muted.");
             return true;
         }
 
         Bukkit.getScheduler().runTask(m, () -> {
 
-            SqlCache.removeMute(target);
-            SqlMethods.updateHistoryStatus(target, "Mute", "Unmuted", sender);
+            SqlCache.removeMute(tgtUuid, "Unmuted", sender);
 
         });
 

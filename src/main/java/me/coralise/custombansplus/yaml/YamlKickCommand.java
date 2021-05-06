@@ -3,6 +3,7 @@ import me.coralise.custombansplus.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -15,7 +16,7 @@ public class YamlKickCommand extends YamlAbstractCommand {
         super("cbpkick", "custombansplus.kick", true);
     }
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static Player target;
     static CommandSender sdr;
     static String rsn;
@@ -39,16 +40,11 @@ public class YamlKickCommand extends YamlAbstractCommand {
             reason = rsn;
         }
         
-        String msg = m.getConfig().getString("kick-page");
+        String msg = m.parseMessage(m.getConfig().getString("pages.kick"));
 
-        msg = msg.replace(" /n ", "\n");
-        msg = msg.replace("/n ", "\n");
-        msg = msg.replace(" /n", "\n");
-        msg = msg.replace("/n", "\n");
         msg = msg.replace("%player%", tgt);
         msg = msg.replace("%staff%", send);
         msg = msg.replace("%reason%", reason);
-        msg = msg.replace("&", "§");
     
         return msg;
         
@@ -78,6 +74,7 @@ public class YamlKickCommand extends YamlAbstractCommand {
             sender.sendMessage("§cPlayer " + args[0+s] + " is not online.");
             return true;
         }
+        UUID tgtUuid = m.getUuid(target);
         
         rsn = "";
         if(args.length > 1+s){
@@ -86,17 +83,17 @@ public class YamlKickCommand extends YamlAbstractCommand {
             }
             rsn = rsn.trim();
         }else if(!m.getConfig().getBoolean("toggle-no-reason"))
-            rsn = m.getConfig().getString("default-reason");
+            rsn = m.parseMessage(m.getConfig().getString("defaults.reason"));
 
         if(rsn.equalsIgnoreCase(""))
             annType = "kickNoRsn";
         else
             annType = "kick";
 
-        Bukkit.getScheduler().runTask(m, () -> {
-            target.kickPlayer(getKickMsg(false));
-            YamlAbstractBanCommand.addHistory(target.getName(), sender.getName(), "kick", rsn, null);
-        });
+        new Thread(() -> {
+            Bukkit.getScheduler().runTask(m, () -> target.kickPlayer(getKickMsg(false)));
+            YamlAbstractBanCommand.addHistory(tgtUuid, sender.getName(), "kick", rsn, null);
+        }).start();
 
         if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target.getName(), sdr.getName(), null, rsn, annType);
         else YamlAbstractAnnouncer.getSilentAnnouncer(target.getName(), sdr.getName(), null, rsn, annType);

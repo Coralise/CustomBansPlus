@@ -1,15 +1,18 @@
 package me.coralise.custombansplus.yaml;
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.enums.MuteType;
+import me.coralise.custombansplus.yaml.objects.YamlMuted;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class YamlMuteCommand extends YamlAbstractCommand {
 
@@ -17,56 +20,8 @@ public class YamlMuteCommand extends YamlAbstractCommand {
         super("cbpmute", "custombansplus.mute", true);
     }
 
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public String target;
-    public String tgtUuid;
-    public String duration;
-    public String annType;
-    CommandSender sdr;
-
-    int s;
-
-    public boolean mutePlayer(String type, String reason) {
-
-        Date cDate = new Date();
-        String date = formatter.format(cDate);
-
-        if (reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
-            reason = m.getConfig().getString("default-mute-reason");
-
-        if(reason.equalsIgnoreCase(""))
-            annType = "muteNoRsn";
-        else
-            annType = "mute";
-
-        if (type.equalsIgnoreCase("Permanent")){
-            duration = "Permanent";
-        }
-
-        m.getMutesConfig().set(tgtUuid + ".duration", duration);
-        m.getMutesConfig().set(tgtUuid + ".reason", reason);
-        if(!sdr.getName().equalsIgnoreCase("CONSOLE")) m.getMutesConfig().set(tgtUuid + ".muted-by", m.getUuid(sdr.getName()));
-        else m.getMutesConfig().set(tgtUuid + ".muted-by", "CONSOLE");
-        m.getMutesConfig().set(tgtUuid + ".muted-on", date);
-        m.getMutesConfig().set(tgtUuid + ".unmute-by", "None");
-
-        if (type.equalsIgnoreCase("Duration")) {
-            String unmuteDate = m.calculateUnpunishDate(duration);
-            m.getMutesConfig().set(tgtUuid + ".unmute-by", unmuteDate);
-        }else m.getMutesConfig().set(tgtUuid + ".unmute-by", "None");
-
-        try {
-            m.getMutesConfig().save(m.getMutesFile());
-        } catch (IOException e) {
-            //none
-        }
-
-        YamlCache.setMute(m.getUuid(target));
-
-        return true;
-
-    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -75,69 +30,80 @@ public class YamlMuteCommand extends YamlAbstractCommand {
             return false;
         }
 
-        sdr = sender;
-
         if (args.length == 0) {
             sender.sendMessage("§e/mute [-s] <player> <duration> <reason> - Mutes specified player.");
-            return true;
+            return false;
         }
 
-        s = 0;
+        int s = 0;
         if (args.length > 0 && args[0].equalsIgnoreCase("-s"))
             s = 1;
 
-        target = YamlCache.getPlayerIgn(args[0+s]);
+        String target = YamlCache.getPlayerIgn(args[0+s]);
 
         if(target == null){
             sender.sendMessage("§cPlayer " + args[0+s] + " has never played in the server.");
-            return true;
+            return false;
         }
 
-        tgtUuid = m.getUuid(target);
+        UUID tgtUuid = m.getUuid(target);
 
-        Bukkit.getScheduler().runTask(m, () -> {
+        if (m.getType(args[1+s]) == null) {
+            sender.sendMessage("§cPlease enter a valid option.");
+            return false;
+        }
+
+        String value = args[1+s];
+        String duration = m.getSevDuration(value);
+        int fs = s;
+
+        new Thread(() -> {
+
             String reason = "";
-            if(args.length > 2+s){
-                for(int i = 2+s; i < args.length; i++){
+            if(args.length > 2+fs){
+                for(int i = 2+fs; i < args.length; i++){
                     reason = reason.concat(args[i] + " ");
                 }
                 reason = reason.trim();
             }
-    
-            if(args.length == 1+s){
-                mutePlayer("Permanent", reason);
-                YamlAbstractBanCommand.addHistory(target, sender.getName(), "mute", reason, null);
-                if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-                else YamlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-                return;
-            }
-    
-            if(args.length >= 2+s){
-    
-                if(args[1+s].equalsIgnoreCase("perm")){
-                    mutePlayer("Permanent", reason);
-                    YamlAbstractBanCommand.addHistory(target, sender.getName(), "mute", reason, null);
-                    if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-                    else YamlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-                    return;
-                }
-                String type = YamlAbstractBanCommand.getBanType(args[1+s]);
+            if (!m.getConfig().getBoolean("toggle-no-reason") && reason.isEmpty())
+                reason = m.parseMessage(m.getConfig().getString("defaults.mute-reason"));
 
-                if(type == null){
-                    sender.sendMessage("§cEnter a valid ban option.");
-                    return;
-                }
-                duration = args[1+s];
-                mutePlayer("Duration", reason);
-                YamlAbstractBanCommand.addHistory(target, sender.getName(), "mute", reason, null);
-                if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), args[1+s], reason, annType);
-                else YamlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), args[1+s], reason, annType);
-                return;
-    
-            }
-        });
+            String annType;
+            if (reason.isEmpty())
+                annType = "muteNoRsn";
+            else
+                annType = "mute";
 
-        return false;
+            MuteType muteType = m.getMuteType(value);
+
+            if (sender instanceof Player)
+                YamlCache.setMute(tgtUuid, muteType, reason, duration, m.getUuid(sender).toString());
+            else
+                YamlCache.setMute(tgtUuid, muteType, reason, duration);
+
+            YamlMuted ym = YamlCache.getMutedObject(tgtUuid);
+
+            m.getMutesConfig().set(tgtUuid + ".type", ym.getMuteType().toString());
+            m.getMutesConfig().set(tgtUuid + ".duration", ym.getDuration());
+            m.getMutesConfig().set(tgtUuid + ".reason", ym.getReason());
+            m.getMutesConfig().set(tgtUuid + ".muted-by", ym.getMuterUuid());
+            m.getMutesConfig().set(tgtUuid + ".muted-on", ym.getMuteDateString());
+            m.getMutesConfig().set(tgtUuid + ".unmute-by", ym.getUnmuteDateString());
+
+            try {
+                m.getMutesConfig().save(m.getMutesFile());
+            } catch (IOException e) {
+                //none
+            }
+
+            YamlAbstractBanCommand.addHistory(tgtUuid, sender.getName(), "mute", reason, null);
+            if (fs == 0) YamlAbstractAnnouncer.getAnnouncer(target, sender.getName(), args[1+fs], reason, annType);
+            else YamlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), args[1+fs], reason, annType);
+
+        }).start();
+
+        return true;
     }
 
     @Override

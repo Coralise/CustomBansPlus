@@ -4,6 +4,7 @@ import me.coralise.custombansplus.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -24,7 +25,7 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
         super("cbphistory", "custombansplus.ban", false);
     }
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     static YamlGUIItems item = new YamlGUIItems();
     static int[] slot = { 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38,
             39, 40, 41, 42, 43 };
@@ -32,14 +33,12 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
 
     int banPoint;
     int mutePoint;
-    HashMap<String, String> t = new HashMap<String, String>();
+    HashMap<String, UUID> t = new HashMap<String, UUID>();
     static HashMap<String, Integer> histNum = new HashMap<String, Integer>();
     HashMap<String, Integer> preHistNum = new HashMap<String, Integer>();
     HashMap<String, Integer> histPage = new HashMap<String, Integer>();
 
-    public boolean checkPoints(String target, String strPlayer) {
-
-        String tgtUuid = m.getUuid(target);
+    public boolean checkPoints(UUID tgtUuid, String strPlayer) {
 
         banPoint = 0;
         mutePoint = 0;
@@ -47,23 +46,23 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
         int banCounter = 0;
         int muteCounter = 0;
 
-        if (!m.getBansConfig().getKeys(false).contains(tgtUuid))
+        if (!YamlCache.isPlayerBanned(tgtUuid))
             banCounter = 2;
 
-        if (!m.getMutesConfig().getKeys(false).contains(tgtUuid))
+        if (!YamlCache.isPlayerMuted(tgtUuid))
             muteCounter = 2;
 
         int count = histNum.get(strPlayer);
 
         while (count > 0) {
 
-            String parentPath = target + "." + count;
-            if (muteCounter == 0 && m.getHistConfig().getString(parentPath + ".type").equalsIgnoreCase("Mute") && !YamlAbstractBanCommand.isUnmuted(target)) {
+            String parentPath = tgtUuid.toString() + "." + count;
+            if (muteCounter == 0 && m.getHistConfig().getString(parentPath + ".type").equalsIgnoreCase("Mute") && !YamlCache.isMuteLifted(tgtUuid)) {
                 mutePoint = count;
                 muteCounter = 2;
             }
-            if (banCounter == 0 && !YamlCache.isBanLifted(m.getUuid(target)) && (m.getHistConfig().getString(parentPath + ".type").equalsIgnoreCase("Ban")
-                    || m.getHistConfig().getString(parentPath + ".type").equalsIgnoreCase("IP Ban"))) {
+            if (banCounter == 0 && !YamlCache.isBanLifted(tgtUuid) && (m.getHistConfig().getString(parentPath + ".type").contains("Ban")
+                    || m.getHistConfig().getString(parentPath + ".type").contains("IP Ban"))) {
                 banPoint = count;
                 banCounter = 2;
             }
@@ -143,24 +142,29 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
 
     }
 
-    public static void setPunishments(Inventory histGUI, String target, int banPoint, int mutePoint, String strPlayer) {
+    public static void setPunishments(Inventory histGUI, UUID tgtUuid, int banPoint, int mutePoint, String strPlayer) {
 
         slotIndex = 0;
 
         int hn = histNum.get(strPlayer);
-        String tgtUuid = m.getUuid(target);
 
         while (hn > 0) {
 
-            String type = m.getHistConfig().getString(target + "." + hn + ".type");
+            String type = m.getHistConfig().getString(tgtUuid.toString() + "." + hn + ".type");
             Material mat = Material.AIR;
 
             switch (type) {
 
-                case "Ban":
+                case "Temp Ban":
                     mat = Material.STONE_SWORD;
                     break;
-                case "IP Ban":
+                case "Perm Ban":
+                    mat = Material.STONE_SWORD;
+                    break;
+                case "Temp IP Ban":
+                    mat = Material.IRON_SWORD;
+                    break;
+                case "Perm IP Ban":
                     mat = Material.IRON_SWORD;
                     break;
                 case "Warn":
@@ -180,7 +184,7 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
             if (hn == mutePoint)
                 mat = Material.BLAZE_ROD;
 
-            String parentPath = target + "." + hn;
+            String parentPath = tgtUuid.toString() + "." + hn;
 
             ItemStack punishment = new ItemStack(mat, 1);
             ItemMeta meta = punishment.getItemMeta();
@@ -203,12 +207,12 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
             }
             if (hn == banPoint) {
                 lore.add("§aBan: §cActive");
-                if (!m.getHistConfig().getString(parentPath + ".duration").equalsIgnoreCase("Permanent"))
-                    lore.add("§aTime remaining: §c" + m.getTimeRemaining(m.getYamlUnbanDate(tgtUuid)));
+                if (!YamlCache.getBannedObject(tgtUuid).getDuration().equalsIgnoreCase("Permanent"))
+                    lore.add("§aTime remaining: §c" + m.getTimeRemaining(YamlCache.banCache.get(tgtUuid).getUnbanDate()));
             } else if (hn == mutePoint) {
                 lore.add("§aMute: §cActive");
-                if (!m.getHistConfig().getString(parentPath + ".duration").equalsIgnoreCase("Permanent"))
-                    lore.add("§aTime remaining: §c" + m.getTimeRemaining(m.getYamlUnmuteDate(tgtUuid)));
+                if (!YamlCache.getMutedObject(tgtUuid).getDuration().equalsIgnoreCase("Permanent"))
+                    lore.add("§aTime remaining: §c" + m.getTimeRemaining(YamlCache.muteCache.get(tgtUuid).getUnmuteDate()));
             }
 
             meta.setLore(lore);
@@ -240,48 +244,42 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
 
         YamlCBMenu.player = player;
 
-        String target = "";
-
         if (args.length == 0) {
             sender.sendMessage("§e/hist <player> - Shows specified player's punishment history.");
             return true;
         }
 
-        for (String p : m.getHistConfig().getKeys(false)) {
-            if (p.toLowerCase().equalsIgnoreCase(args[0].toLowerCase())) {
-                target = p;
-                break;
-            }
-        }
+        String target = YamlCache.getPlayerIgn(args[0]);
 
-        if (target.equalsIgnoreCase("")) {
+        if (target == null) {
             sender.sendMessage("§aPlayer " + args[0] + " does not have any history.");
             return true;
         }
+        UUID tgtUuid = m.getUuid(target);
 
         // ----------------------------------//
 
         Inventory histGUI = Bukkit.createInventory(null, 54, "§8§lC§4§lB§8§lP §8" + target + "'s History");
         setInventory(histGUI);
 
-        t.put(strPlayer, target);
+        t.put(strPlayer, tgtUuid);
 
-        histNum.put(player.getName(), m.getHistConfig().getConfigurationSection(target).getKeys(false).size());
+        histNum.put(player.getName(), m.getHistConfig().getConfigurationSection(tgtUuid.toString()).getKeys(false).size());
         preHistNum.remove(strPlayer);
         histPage.remove(strPlayer);
 
-        checkPoints(target, strPlayer);
+        checkPoints(tgtUuid, strPlayer);
 
         int bp = banPoint;
         int mp = mutePoint;
 
-        setPunishments(histGUI, target, bp, mp, strPlayer);
+        setPunishments(histGUI, tgtUuid, bp, mp, strPlayer);
         int hn = histNum.get(strPlayer);
 
         if(hn != 0) histGUI.setItem(50, item.histNextPage());
         histPage.put(strPlayer, 0);
 
-        player.openInventory(histGUI);
+        Bukkit.getScheduler().runTask(m, () -> player.openInventory(histGUI));
 
         return true;
     
@@ -327,7 +325,7 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
                 if(hn != 0) histGUI.setItem(50, item.histNextPage());
                 histPage.replace(p.getName(), histPage.get(p.getName())+1);
                 histGUI.setItem(48, item.histPrevPage());
-                p.openInventory(histGUI);
+                Bukkit.getScheduler().runTask(m, () -> p.openInventory(histGUI));
                 return;
 
             case "hist Prev Page":
@@ -339,7 +337,7 @@ public class YamlHistoryCommand extends YamlAbstractCommand implements Listener 
                 histGUI.setItem(50, item.histNextPage());
                 histPage.replace(p.getName(), histPage.get(p.getName())-1);
                 if(histPage.get(p.getName()) != 0) histGUI.setItem(48, item.histPrevPage());
-                p.openInventory(histGUI);
+                Bukkit.getScheduler().runTask(m, () -> p.openInventory(histGUI));
                 return;
 
         }

@@ -1,16 +1,9 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package me.coralise.custombansplus.yaml;
 import me.coralise.custombansplus.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -26,33 +19,12 @@ public class YamlUnbanCommand extends YamlAbstractCommand{
         super("cbpunban", "custombansplus.unban", true);
     }
     
-    public final CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    public final CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     ConsoleCommandSender cnsl = Bukkit.getServer().getConsoleSender();
 
     String target;
-    String tgtUuid;
+    UUID tgtUuid;
     String targetIP;
-
-    public void removeBans(){
-        if(m.getBansConfig().getKeys(false).contains(targetIP)){
-            YamlCache.getSameIps(targetIP).forEach(ign -> {
-                YamlCache.getOciCache().remove(tgtUuid);
-                m.updateYamlOci();
-                YamlCache.removeBan(m.getUuid(ign));
-            });
-            m.getBansConfig().set(targetIP, null);
-        }else if(m.getBansConfig().getKeys(false).contains(tgtUuid)){
-            YamlCache.getOciCache().remove(tgtUuid);
-            m.updateYamlOci();
-            YamlCache.removeBan(tgtUuid);
-        }
-
-        try {
-            m.getBansConfig().save(m.getBansFile());
-        } catch (IOException ex) {
-            Logger.getLogger(YamlUnbanCommand.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -80,16 +52,14 @@ public class YamlUnbanCommand extends YamlAbstractCommand{
 
         tgtUuid = m.getUuid(target);
         
-        targetIP = m.getYamlIp(target);
+        targetIP = m.getYamlIp(tgtUuid);
         
-        if(!m.getBansConfig().getKeys(false).contains(tgtUuid) && !m.getBansConfig().getKeys(false).contains(targetIP)){
+        if(!YamlCache.isPlayerBanned(tgtUuid)){
             sender.sendMessage("§cPlayer " + target + " is not banned.");
             return true;
         }
-        
-        Bukkit.getScheduler().runTask(m, () -> {
-            removeBans();
-        });
+
+        new Thread(() -> YamlCache.removeBan(tgtUuid)).start();
         
         if (s == 0) YamlAbstractAnnouncer.getAnnouncer(target, sender.getName(), null, null, "unban");
         else YamlAbstractAnnouncer.getSilentAnnouncer(target, sender.getName(), null, null, "unban");

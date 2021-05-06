@@ -14,7 +14,7 @@ public class UpdateChecker extends Thread{
 
     private JavaPlugin plugin;
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
     public UpdateChecker(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -35,7 +35,7 @@ public class UpdateChecker extends Thread{
     }
 
     public static void checkUpdate(Player p) {
-        if(m.getConfig().getBoolean("toggle-update-notifs") && m.update != null && p.isOp()) Bukkit.getScheduler().runTaskLater(m, () -> p.sendMessage(m.getUpdate()), 100);
+        if(m.getConfig().getBoolean("updates.notify") && m.update != null && p.isOp()) Bukkit.getScheduler().runTaskLater(m, () -> p.sendMessage(m.getUpdate()), 100);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class UpdateChecker extends Thread{
             });
             try {
                 long millis = 0;
-                String[] loValues = m.getConfig().getString("update-interval").split("(?<=[smhd])");
+                String[] loValues = m.getConfig().getString("updates.interval").split("(?<=[smhd])");
                 for(String v : loValues){
                     long loValue = Long.parseLong(v.substring(0,v.length()-1));
                     switch(v.charAt(v.length()-1)){

@@ -1,13 +1,16 @@
 package me.coralise.custombansplus.sql;
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.enums.MuteType;
 
-import java.text.SimpleDateFormat;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class SqlMuteCommand extends SqlAbstractCommand {
 
@@ -15,32 +18,7 @@ public class SqlMuteCommand extends SqlAbstractCommand {
         super("cbpmute", "custombansplus.mute", true);
     }
 
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public String target;
-    public String duration;
-    CommandSender sdr;
-    String annType;
-
-    public boolean setMute(String type, String reason) {
-
-        if (reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
-            reason = m.getConfig().getString("default-mute-reason");
-
-        if(reason.equalsIgnoreCase(""))
-            annType = "muteNoRsn";
-        else
-            annType = "mute";
-
-        if (type.equalsIgnoreCase("Permanent")){
-            duration = "Permanent";
-        }
-
-        SqlMethods.mutePlayer(target, sdr, reason, duration);
-
-        return true;
-
-    }
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -49,27 +27,29 @@ public class SqlMuteCommand extends SqlAbstractCommand {
             return false;
         }
 
-        sdr = sender;
+        CommandSender sdr = sender;
         reason = "";
         this.args = args;
-
-        if (args.length == 0) {
-            sender.sendMessage("§e/mute [-s] <player> <duration> <reason> - Mutes specified player.");
-            return true;
-        }
 
         s = 0;
         if (args.length > 0 && args[0].equalsIgnoreCase("-s"))
             s = 1;
 
-        target = SqlCache.getPlayerIgn(args[0+s]);
+        if (args.length < 2+s) {
+            sender.sendMessage("§e/mute [-s] <player> <duration> <reason> - Mutes specified player.");
+            return false;
+        }
+
+        String target = SqlCache.getPlayerIgn(args[0+s]);
 
         if(target == null){
             sender.sendMessage("§cPlayer " + args[0+s] + " has never played in the server.");
             return true;
         }
 
-        if(SqlCache.isPlayerMuted(target) && !sender.hasPermission("custombansplus.overwrite")){
+        UUID tgtUuid = m.getUuid(target);
+
+        if(SqlCache.isPlayerMuted(tgtUuid) && !sender.hasPermission("custombansplus.overwrite")){
             sender.sendMessage("§cPlayer " + target + " is already muted and you don't have overwrites permission.");
             return true;
         }
@@ -81,46 +61,49 @@ public class SqlMuteCommand extends SqlAbstractCommand {
             reason = reason.trim();
         }
 
-        Bukkit.getScheduler().runTask(m, () -> {
+        if (reason.equalsIgnoreCase("") && !m.getConfig().getBoolean("toggle-no-reason"))
+            reason = m.parseMessage(m.getConfig().getString("defaults.mute-reason"));
 
-            SqlMethods.updateHistoryStatus(target, "Mute", "Overwritten", sender);
+        String annType;
+        if(reason.equalsIgnoreCase(""))
+            annType = "muteNoRsn";
+        else
+            annType = "mute";
 
-        if(args.length == 1+s){
-            setMute("Permanent", reason);
-            SqlMethods.addHistory(target, "Mute", null, null);
-            if (s == 0) SqlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-            else SqlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-            return;
+        String value = args[1+s];
+        if (m.getType(value) == null) {
+            sender.sendMessage("§cEnter a valid mute option.");
+            return false;
         }
+        String duration = m.getSevDuration(value);
+        MuteType muteType = m.getMuteType(duration);
 
-        if(args.length >= 2+s){
-
-            if(args[1+s].equalsIgnoreCase("perm")){
-                setMute("Permanent", reason);
-                SqlMethods.addHistory(target, "Mute", null, null);
-                if (s == 0) SqlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-                else SqlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), "Permanent", reason, annType);
-                return;
+        new Thread(() ->{
+            try {
+                SqlMethods.updateHistoryStatus(tgtUuid, "Mute", "Overwritten", sender);
+            } catch (SQLException e1) {
+                e1.printStackTrace();
             }
+
+            if (sender instanceof Player)
+                SqlCache.setMute(tgtUuid, muteType, reason, duration, m.getUuid(sender));
+            else
+                SqlCache.setMute(tgtUuid, muteType, reason, duration);
+
+            try {
+                SqlMethods.addHistory(tgtUuid, "Mute", null, null);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            String annValue = duration;
+            if (duration.equalsIgnoreCase("perm")) annValue = "Permanent";
             
-            String type = SqlAbstractBanCommand.getBanType(args[1+s]);
+            if (s == 0) SqlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), annValue, reason, annType);
+            else SqlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), annValue, reason, annType);
+        }).start();
 
-            if(type == null){
-                sender.sendMessage("§cEnter a valid ban option.");
-                return;
-            }
-
-            duration = args[1+s];
-            setMute("Duration", reason);
-            SqlMethods.addHistory(target, "Mute", null, null);
-            if (s == 0) SqlAbstractAnnouncer.getAnnouncer(target, sdr.getName(), args[1+s], reason, annType);
-            else SqlAbstractAnnouncer.getSilentAnnouncer(target, sdr.getName(), args[1+s], reason, annType);
-
-        }
-
-        });
-
-        return false;
+        return true;
     }
 
     @Override

@@ -1,16 +1,21 @@
 package me.coralise.custombansplus.yaml;
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.yaml.objects.YamlReport;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 public class YamlGUIItems {
 
-    CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
     
     public ItemStack airItem(){
 
@@ -47,6 +52,18 @@ public class YamlGUIItems {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName("§r§c§lBack to Severity List");
         meta.setLocalizedName("Back to Severity List");
+        item.setItemMeta(meta);
+
+        return item;
+
+    }
+
+    public ItemStack backItemReports(){
+
+        ItemStack item = new ItemStack(Material.BARRIER, 1);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§r§c§lBack to Reports List");
+        meta.setLocalizedName("Back to Reports List");
         item.setItemMeta(meta);
 
         return item;
@@ -117,7 +134,7 @@ public class YamlGUIItems {
 
         lore.add("§r");
         lore.add("§r§eLeft Click: §fEdit Severity");
-        lore.add("§r§eMiddle Click: §fDelete Severity");
+        lore.add("§r§eShift+Right Click: §fDelete Severity");
 
         meta.setLore(lore);
         item.setItemMeta(meta);
@@ -464,7 +481,7 @@ public class YamlGUIItems {
         meta.setLocalizedName("default reason");
         List<String> lore = new ArrayList<String>();
         lore.add("§r§eCurrent:");
-        lore.add("§r§f" + m.getConfig().getString("default-reason"));
+        lore.add("§r§f" + m.parseMessage(m.getConfig().getString("defaults.reason")));
         lore.add("§r§e");
         lore.add("§r§eLeft Click: §fEdit");
         meta.setLore(lore);
@@ -483,7 +500,7 @@ public class YamlGUIItems {
         List<String> lore = new ArrayList<String>();
         lore.add("§r§eUse to clear memory.");
         lore.add("§r§e");
-        lore.add("§r§eMiddle Click: §fPurge");
+        lore.add("§r§eShift+Right Click: §fPurge");
         meta.setLore(lore);
         item.setItemMeta(meta);
 
@@ -500,12 +517,173 @@ public class YamlGUIItems {
         List<String> lore = new ArrayList<String>();
         lore.add("§r§eUse to clear memory.");
         lore.add("§r§e");
-        lore.add("§r§eMiddle Click: §fPurge");
+        lore.add("§r§eShift+Right Click: §fPurge");
         meta.setLore(lore);
         item.setItemMeta(meta);
 
         return item;
 
     }
+
+    public ItemStack getReport(YamlReport report) {
+        
+        ItemStack item = new ItemStack(Material.PAPER, 1);
+        ItemMeta meta = item.getItemMeta();
+        ArrayList<String> lore = new ArrayList<String>();
+
+        if (!report.isResolved()) {
+            meta.addEnchant(Enchantment.MENDING, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            lore.add("§aStatus: §cNot Resolved");
+            item.setType(Material.RED_WOOL);
+        } else {
+            lore.add("§aStatus: §eResolved");
+            lore.add("§aResolved by: §f" + report.getResolverUuid());
+            item.setType(Material.GREEN_WOOL);
+        }
+        meta.setDisplayName("§a§l" + report.getReportNum());
+        meta.setLocalizedName("report " + report.getUuid().toString() + " " + report.getReportNum());
+
+        lore.add("§aDate: §f" + report.getDate());
+        lore.add("§aReporter: §f" + m.getName(report.getReporterUuid()));
+
+        lore.add("§aReport:");
+        String[] words = report.getReport().split(" ");
+        String sentence = "";
+
+        for (int i = 0;i < words.length;i++) {
+            sentence += words[i] + " ";
+            if (i != 0 && i % 4 == 0) {
+                lore.add("§f" + sentence);
+                sentence = "";
+            }
+        }
+        lore.add("§f" + sentence);
+        lore.add("");
+        lore.add("§eLeft Click: §fToggle Resolved");
+        lore.add("§eShift+Right Click: §fDelete");
+
+        meta.setLore(lore);
+
+        item.setItemMeta(meta);
+
+        return item;
+
+    }
+
+    public ItemStack getReports(UUID uuid) {
+
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1);
+
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        meta.setDisplayName("§e§l" + m.getName(uuid.toString()));
+        meta.setLocalizedName("reports " + uuid.toString());
+
+        int unresolveds = 0;
+        for (String num : m.getReportsConfig().getConfigurationSection(uuid.toString()).getKeys(false)) {
+            if (!m.getReportsConfig().getBoolean(uuid.toString() + "." + num + ".resolved")) {
+                unresolveds++;
+            }
+        }
+        
+        String u = "";
+        if (unresolveds == 0) u = "§a0";
+        else u = "§c" + unresolveds;
+        
+        ArrayList<String> lore = new ArrayList<String>();
+        lore.add("");
+        lore.add("§fReports: §f" + m.getReportsConfig().getConfigurationSection(uuid.toString()).getKeys(false).size());
+        lore.add("§fUnresolved: " + u);
+
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+
+        return item;
+
+    }
+
+    public ItemStack getReportsWithSkin(UUID uuid) {
+
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1);
+
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        meta.setOwningPlayer(m.getOfflinePlayer(uuid));
+        meta.setDisplayName("§e§l" + m.getName(uuid.toString()));
+        meta.setLocalizedName("reports " + uuid.toString());
+
+        int unresolveds = 0;
+        for (String num : m.getReportsConfig().getConfigurationSection(uuid.toString()).getKeys(false)) {
+            if (!m.getReportsConfig().getBoolean(uuid.toString() + "." + num + ".resolved")) {
+                unresolveds++;
+            }
+        }
+        
+        String u = "";
+        if (unresolveds == 0) u = "§a0";
+        else u = "§c" + unresolveds;
+        
+        ArrayList<String> lore = new ArrayList<String>();
+        lore.add("");
+        lore.add("§fReports: §f" + m.getReportsConfig().getConfigurationSection(uuid.toString()).getKeys(false).size());
+        lore.add("§fUnresolved: " + u);
+
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+
+        return item;
+
+    }
+
+    public ItemStack reportNextPage() {
+
+        ItemStack item = new ItemStack(Material.PAPER, 1);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§r§a§lNext Page");
+        meta.setLocalizedName("report Next Page");
+        List<String> lore = new ArrayList<String>();
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+
+        return item;
+    }
+
+	public ItemStack reportPrevPage() {
+
+        ItemStack item = new ItemStack(Material.PAPER, 1);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§r§a§lPrevious Page");
+        meta.setLocalizedName("report Prev Page");
+        List<String> lore = new ArrayList<String>();
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+
+		return item;
+	}
+
+    public ItemStack reportsNextPage() {
+
+        ItemStack item = new ItemStack(Material.PAPER, 1);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§r§a§lNext Page");
+        meta.setLocalizedName("reports Next Page");
+        List<String> lore = new ArrayList<String>();
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+
+        return item;
+    }
+
+	public ItemStack reportsPrevPage() {
+
+        ItemStack item = new ItemStack(Material.PAPER, 1);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§r§a§lPrevious Page");
+        meta.setLocalizedName("reports Prev Page");
+        List<String> lore = new ArrayList<String>();
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+
+		return item;
+	}
     
 }

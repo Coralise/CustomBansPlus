@@ -1,18 +1,20 @@
 package me.coralise.custombansplus.sql;
 
 import me.coralise.custombansplus.*;
+import me.coralise.custombansplus.sql.objects.SqlBanned;
+import me.coralise.custombansplus.sql.objects.SqlMuted;
+import me.coralise.custombansplus.sql.objects.SqlPlayer;
 
 import static java.sql.DriverManager.getConnection;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -21,18 +23,18 @@ import org.bukkit.entity.Player;
 
 public class SqlMethods {
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
 
-    static final String HOST = m.getConfig().getString("host");
-    static final String PORT = m.getConfig().getString("port");
-    static final String USERNAME = m.getConfig().getString("user");
-    static final String PASSWORD = m.getConfig().getString("pass");
-    static final String URL = "jdbc:mysql://" + HOST + ":" + PORT + "?useTimezone=true&serverTimezone=UTC";
+    private static final String HOST = m.getConfig().getString("sql.host");
+    private static final String PORT = m.getConfig().getString("sql.port");
+    private static final String USERNAME = m.getConfig().getString("sql.user");
+    private static final String PASSWORD = m.getConfig().getString("sql.pass");
+    private static final String URL = "jdbc:mysql://" + HOST + ":" + PORT + "?useTimezone=true&serverTimezone=UTC";
 
-    static Statement s;
-    static String sql;
-    static ResultSet rs;
-    static Connection c;
+    private static Statement s;
+    private static String sql;
+    private static ResultSet rs;
+    private static Connection c;
 
     static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -70,8 +72,8 @@ public class SqlMethods {
             }
 
             if (check) {
-                sql = "CREATE DATABASE cbp";
-                s.executeUpdate(sql);
+                PreparedStatement ps = c.prepareStatement("CREATE DATABASE cbp");
+                ps.execute();
                 System.out.println("[CBP] Created CustomBansPlus schematic for the first time.");
                 System.out.println("[CBP] Preparing tables...");
                 createTables();
@@ -93,7 +95,7 @@ public class SqlMethods {
             s.executeUpdate(sql);
 
             sql = "CREATE TABLE `cbp`.`active_bans` ( " + "`ban_id` INT NOT NULL AUTO_INCREMENT, "
-                    + "`ban_type` VARCHAR(20) NOT NULL, " + "`player_uuid` VARCHAR(45) NULL, "
+                    + "`ban_type` VARCHAR(20) NOT NULL, " + "`player_uuid` VARCHAR(45) UNIQUE NOT NULL, "
                     + "`banned_ip` VARCHAR(45) NULL, " + "`banner_uuid` VARCHAR(45) NOT NULL, "
                     + "`ban_reason` VARCHAR(256) NULL, " + "`ban_date` DATETIME NOT NULL, "
                     + "`ban_duration` VARCHAR(20) NULL, " + "`unban_date` DATETIME NULL, " + "PRIMARY KEY (`ban_id`)) ";
@@ -111,7 +113,7 @@ public class SqlMethods {
             sql = "CREATE TABLE `cbp`.`active_mutes` ( " +
                 "`mute_id` INT NOT NULL AUTO_INCREMENT, " +
                 "`mute_type` VARCHAR(20) NOT NULL, " +
-                "`player_uuid` VARCHAR(45) NOT NULL, " +
+                "`player_uuid` VARCHAR(45) UNIQUE NOT NULL, " +
                 "`muter_uuid` VARCHAR(45) NOT NULL, " +
                 "`mute_reason` VARCHAR(256) NULL, " +
                 "`mute_date` DATETIME NOT NULL, " +
@@ -159,338 +161,32 @@ public class SqlMethods {
     }
 
     /**
-     * Gets the player's latest ban type in cbp.active_bans.
-     */
-    public static String getBanType(String ign) {
-        // assuming ign is banned
-        try {
-
-            String uuid = m.getUuid(ign);
-
-            sql = String.format("SELECT ban_type FROM cbp.active_bans WHERE player_uuid = '%s' ORDER BY ban_id DESC",
-                    uuid);
-
-            rs = s.executeQuery(sql);
-
-            while (rs.next()) {
-                if (!rs.getString("ban_type").endsWith("IP"))
-                    break;
-            }
-
-            return rs.getString("ban_type");
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
      * Sets player to cbp.active_bans with the required values set. If ban is
      * already in cbp.active_bans, overwrite that record. Otherwise, adds a new
      * record for the player.
+     * @throws SQLException
      */
-    public static void setBan(String targetUuid, CommandSender sender, String reason, String duration) {
-        try {
+    public static void setBan(SqlBanned sb) throws SQLException {
+        PreparedStatement ps = c.prepareStatement("INSERT INTO cbp.active_bans (ban_type, player_uuid, banner_uuid, ban_reason, ban_date, ban_duration, unban_date, banned_ip)\n"
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                + "\nON DUPLICATE KEY UPDATE ban_type = ?, banner_uuid = ?, ban_reason = ?, ban_date = ?, ban_duration = ?, banned_ip = ?, unban_date = ?;");
 
-            String cDate = formatter.format(new Date());
-            String unbanDate = null;
-            String banType = "Perm Ban";
-            if (!duration.equalsIgnoreCase("Permanent")) {
-                unbanDate = "'" + m.calculateUnpunishDate(duration) + "'";
-                banType = "Temp Ban";
-            }
-
-            reason = reason.replace("'", "''");
-
-            String ign = Bukkit.getOfflinePlayer(UUID.fromString(targetUuid)).getName();
-            String ip = m.getSqlIp(ign);
-            String bannerUuid = "CONSOLE";
-            if(sender instanceof Player) bannerUuid = m.getUuid(sender);
-
-            if (!SqlCache.isPlayerBanned(ign))
-                sql = String.format(
-                        "INSERT INTO `cbp`.`active_bans` (`ban_type`, `player_uuid`, `banner_uuid`, `ban_reason`, `ban_date`, `ban_duration`, `unban_date`, banned_ip) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %s, '%s');",
-                        banType, targetUuid, bannerUuid, reason, cDate, duration, unbanDate, ip);
-            else
-                sql = String.format(
-                        "UPDATE `cbp`.`active_bans` " + "SET `ban_type` = '%s', " + "`banner_uuid` = '%s', "
-                                + "`ban_reason` = '%s', " + "`ban_date` = '%s', " + "`ban_duration` = '%s', " + "banned_ip = '%s', "
-                                + "`unban_date` = %s " + "WHERE player_uuid = '%s'",
-                        banType, bannerUuid, reason, cDate, duration, ip, unbanDate, targetUuid);
-
-            s.executeUpdate(sql);
-
-            SqlCache.setBan(ign);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Gets all values from a player's latest active ban in cbp.active_bans.
-     * 
-     * @param ign
-     * @param banType
-     * @return
-     */
-    public static String[] getActiveBanDetails(String ign, String banType) {
-        try {
-
-            String uuid = m.getUuid(ign);
-
-            sql = String.format(
-                    "SELECT * FROM cbp.active_bans WHERE ban_type = '%s' AND  player_uuid = '%s' ORDER BY ban_id DESC",
-                    banType, uuid);
-
-            rs = s.executeQuery(sql);
-
-            rs.next();
-
-            String[] out = new String[5];
-            out[0] = "CONSOLE";
-            if(!rs.getString("banner_uuid").equalsIgnoreCase("CONSOLE")) out[0] = Bukkit.getOfflinePlayer(UUID.fromString(rs.getString("banner_uuid"))).getName();
-            out[1] = rs.getString("ban_reason");
-            out[2] = rs.getString("ban_duration");
-            out[3] = null;
-            if(!rs.getString("ban_type").contains("Perm")) out[3] = m.getTimeRemaining(rs.getString("unban_date"));
-            out[4] = rs.getString("unban_date");
-
-            return out;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * Adds IP to cbp.active_bans with the required values set.
-     * <p>
-     * If IP is already in
-     * cbp.active_bans, overwite that record. Otherwise, create a new one.
-     */
-    public static void setIpBan(String targetIp, String bannerUuid, String reason, String duration) {
-        try {
-
-            String cDate = formatter.format(new Date());
-            String unbanDate = null;
-            String banType = "Perm IP Ban IP";
-            if (!duration.equalsIgnoreCase("Permanent")) {
-                unbanDate = "'" + m.calculateUnpunishDate(duration) + "'";
-                banType = "Temp IP Ban IP";
-            }
-
-            reason = reason.replace("'", "''");
-
-            if (!SqlCache.isIpBanned(targetIp))
-                sql = String.format(
-                        "INSERT INTO `cbp`.`active_bans` (`ban_type`, `banned_ip`, `banner_uuid`, `ban_reason`, `ban_date`, `ban_duration`, `unban_date`) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %s);",
-                        banType, targetIp, bannerUuid, reason, cDate, duration, unbanDate);
-            else
-                sql = String.format(
-                        "UPDATE `cbp`.`active_bans` " + "SET `ban_type` = '%s', " + "`banner_uuid` = '%s', "
-                                + "`ban_reason` = '%s', " + "`ban_date` = '%s', " + "`ban_duration` = '%s', "
-                                + "`unban_date` = %s " + "WHERE banned_ip = '%s' AND player_uuid IS NULL",
-                        banType, bannerUuid, reason, cDate, duration, unbanDate, targetIp);
-
-            s.executeUpdate(sql);
-
-            SqlCache.setIpBan(targetIp);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Returns details from the IP's record in cbp.active_bans.
-     */
-    public static String[] getIpBanDetails(String ip) {
-        String[] out = new String[5];
-        try {
-
-            String banType = SqlMethods.getIpBanType(ip, "ip");
-
-            sql = String.format(
-                    "SELECT * FROM cbp.active_bans WHERE ban_type = '%s' AND  banned_ip = '%s' ORDER BY ban_id DESC",
-                    banType, ip);
-
-            rs = s.executeQuery(sql);
-
-            rs.next();
-
-            out[0] = "CONSOLE";
-            if(!rs.getString("banner_uuid").equalsIgnoreCase("CONSOLE")) out[0] = Bukkit.getOfflinePlayer(UUID.fromString(rs.getString("banner_uuid"))).getName();
-            out[1] = rs.getString("ban_reason");
-            out[2] = rs.getString("ban_duration");
-            out[3] = null;
-            if(!rs.getString("ban_type").contains("Perm")) out[3] = m.getTimeRemaining(rs.getString("unban_date"));
-            out[4] = rs.getString("unban_date");
-
-            return out;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return out;
-    }
-
-    /**
-     * Gets the Ban Type of an IP in cbp.active_bans.
-     * <p>
-     * Returns: 
-     * <p>
-     * Temp IP Ban or Perm IP Ban if option == player
-     * Temp IP Ban IP or Perm IP Ban IP if option == ip
-     */
-    public static String getIpBanType(String ip, String option) {
-        try {
-
-            sql = String.format("SELECT ban_type FROM cbp.active_bans WHERE banned_ip = '%s' AND ban_type LIKE '%%IP'", ip);
-
-            rs = s.executeQuery(sql);
-
-            rs.next();
-
-            if(option.equalsIgnoreCase("ip")) return rs.getString("ban_type");
-
-            if (rs.getString("ban_type").equalsIgnoreCase("Temp IP Ban IP"))
-                return "Temp IP Ban";
-            else
-                return "Perm IP Ban";
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * Bans player using IP's record values in cbp.active_bans.
-     * <p>
-     * Used for when a new player enters the server and IP is banned.
-     * 
-     * @param target
-     */
-    public static void banPlayer(String target) {
-        try {
-
-            String ip = m.getSqlIp(target);
-            String banType = SqlMethods.getIpBanType(ip, "player");
-            String uuid = m.getUuid(target);
-
-            if(!SqlCache.isPlayerBanned(target))
-                sql = String.format(
-                    "INSERT INTO cbp.active_bans (ban_type, player_uuid, banned_ip, banner_uuid, ban_reason, ban_date, ban_duration, unban_date) " +
-                    "SELECT '%s' AS 'ban_type', '%s' AS player_uuid, banned_ip, banner_uuid, ban_reason, ban_date, ban_duration, unban_date " +
-                    "FROM cbp.active_bans " +
-                    "WHERE banned_ip = '%s' AND ban_type LIKE '%%IP'", banType, uuid, ip);
-            else
-                sql = String.format("UPDATE cbp.active_bans pl " +
-                                    "INNER JOIN cbp.active_bans ip ON pl.banned_ip = ip.banned_ip " +
-                                    "SET pl.ban_type = '%s', " +
-                                    "pl.banner_uuid = ip.banner_uuid, " +
-                                    "pl.ban_reason = ip.ban_reason, " +
-                                    "pl.ban_date = ip.ban_date, " +
-                                    "pl.ban_duration = ip.ban_duration, " +
-                                    "pl.unban_date = ip.unban_date " +
-                                    "WHERE pl.player_uuid = '%s' AND ip.ban_type LIKE '%%IP'", banType, uuid);
-
-
-            s.executeUpdate(sql);
-
-            SqlCache.setBan(target);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Returns the unban date of ign's ban.
-     * @param ign
-     * @return
-     */
-    public static String getUnbanDate(String ign){
-        try{
-
-            String uuid = m.getUuid(ign);
-    
-            sql = String.format("SELECT unban_date, ban_duration " +
-                                "FROM cbp.active_bans " +
-                                "WHERE player_uuid = '%s'", uuid);
-
-            rs = s.executeQuery(sql);
-
-            rs.next();
-
-            if(!rs.getString("ban_duration").equalsIgnoreCase("Permanent"))
-                return rs.getString("unban_date");
-            else
-                return "None";
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * Returns the unmute date of ign's unmute.
-     * @param ign
-     * @return
-     */
-    public static String getUnmuteDate(String ign){
-        try{
-
-            String uuid = m.getUuid(ign);
-    
-            sql = String.format("SELECT unmute_date, mute_duration " +
-                                "FROM cbp.active_mutes " +
-                                "WHERE player_uuid = '%s'", uuid);
-
-            rs = s.executeQuery(sql);
-
-            rs.next();
-
-            if(!rs.getString("mute_duration").equalsIgnoreCase("Permanent"))
-                return rs.getString("unmute_date");
-            else
-                return "None";
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * Returns the unban date of ip's ban.
-     * @param ign
-     * @return
-     */
-    public static String getUnbanDateIp(String ip){
-        try{
-
-            sql = String.format("SELECT unban_date, ban_duration " +
-                                "FROM cbp.active_bans " +
-                                "WHERE banned_ip = '%s' AND ban_type LIKE '%%IP'", ip);
-
-            rs = s.executeQuery(sql);
-
-            rs.next();
-
-            if(!rs.getString("ban_duration").equalsIgnoreCase("Permanent"))
-                return rs.getString("unban_date");
-            else
-                return "None";
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        return null;
+        ps.setString(1, sb.getBanType().toString());
+        ps.setString(2, sb.getUuid().toString());
+        ps.setString(3, sb.getBannerUuid());
+        ps.setString(4, sb.getReason());
+        ps.setString(5, sb.getBanDateString());
+        ps.setString(6, sb.getDuration());
+        ps.setString(7, sb.getUnbanDateString());
+        ps.setString(8, sb.getIp());
+        ps.setString(9, sb.getBanType().toString());
+        ps.setString(10, sb.getBannerUuid());
+        ps.setString(11, sb.getReason());
+        ps.setString(12, sb.getBanDateString());
+        ps.setString(13, sb.getDuration());
+        ps.setString(14, sb.getIp());
+        ps.setString(15, sb.getUnbanDateString());
+        ps.executeUpdate();
     }
 
     /**
@@ -499,145 +195,77 @@ public class SqlMethods {
      * type = Ban, Mute, Warn, Kick
      * <p>
      * sender and reason is null unless type is Kick.
+     * @throws SQLException
      */
-    public static void addHistory(String ign, String type, CommandSender sender, String reason){
-        try{
+    public static void addHistory(UUID uuid, String type, CommandSender sender, String reason) throws SQLException{
+        String ign = m.getName(uuid.toString());
+        String punishType = "";
+        String stafferUuid = "";
+        String punishDate = "";
+        String duration = "";
+        String unpunishDate = "";
+        String status = "";
 
-            Map<String, String> values = new HashMap<String, String>();
-            String uuid = "";
-            String punishType = "";
-            String stafferUuid = "";
-            String punishDate = "";
-            String duration = "";
-            String unpunishDate = "";
-            String status = "";
+        switch(type){
 
-            switch(type){
+            case "Ban":
+                SqlBanned sb = SqlCache.getBannedObject(uuid);
+                punishType = sb.getBanType().toString();
+                stafferUuid = sb.getBannerUuid();
+                reason = sb.getReason();
+                punishDate = sb.getBanDateString();
+                duration = sb.getDuration();
+                status = "Active";
+                unpunishDate = sb.getUnbanDateString();
+                break;
 
-                case "Ban":
-                    values = SqlMethods.getBanDetails(ign);
-                    uuid = values.get("player_uuid");
-                    punishType = values.get("ban_type");
-                    stafferUuid = values.get("banner_uuid");
-                    reason = values.get("ban_reason");
-                    punishDate = values.get("ban_date");
-                    duration = values.get("ban_duration");
-                    status = "Active";
-                    if(values.get("unban_date") == null)
-                        unpunishDate = values.get("unban_date");
-                    else
-                        unpunishDate = "'" + values.get("unban_date") + "'";
-                    break;
+            case "Mute":
+                SqlMuted sm = SqlCache.getMutedObject(uuid);
+                punishType = sm.getMuteType().toString();
+                stafferUuid = sm.getMuterUuid();
+                reason = sm.getReason();
+                punishDate = sm.getMuteDateString();
+                duration = sm.getDuration();
+                status = "Active";
+                unpunishDate = sm.getUnmuteDateString();
+                break;
 
-                case "Mute":
-                    values = SqlMethods.getMuteDetails(ign);
-                    uuid = values.get("player_uuid");
-                    punishType = values.get("mute_type");
-                    stafferUuid = values.get("muter_uuid");
-                    reason = values.get("mute_reason");
-                    punishDate = values.get("mute_date");
-                    duration = values.get("mute_duration");
-                    status = "Active";
-                    if(values.get("unmute_date") == null)
-                        unpunishDate = values.get("unmute_date");
-                    else
-                        unpunishDate = "'" + values.get("unmute_date") + "'";
-                    break;
+            case "Kick":
+                uuid = m.getUuid(ign);
+                punishType = "Kick";
+                stafferUuid = "CONSOLE";
+                if(sender instanceof Player) stafferUuid = m.getUuid(sender).toString();
+                punishDate = formatter.format(new Date());
+                duration = "None";
+                status = "Kick";
+                unpunishDate = null;
+                break;
 
-                case "Kick":
-                    uuid = m.getUuid(ign);
-                    punishType = "Kick";
-                    stafferUuid = "CONSOLE";
-                    if(sender instanceof Player) stafferUuid = m.getUuid(sender);
-                    punishDate = formatter.format(new Date());
-                    duration = "None";
-                    status = "Kick";
-                    unpunishDate = null;
-                    break;
+            case "Warn":
+                uuid = m.getUuid(ign);
+                punishType = "Warn";
+                stafferUuid = "CONSOLE";
+                if(sender instanceof Player) stafferUuid = m.getUuid(sender).toString();
+                punishDate = formatter.format(new Date());
+                duration = "None";
+                status = "Warn";
+                unpunishDate = null;
+                break;
 
-                case "Warn":
-                    uuid = m.getUuid(ign);
-                    punishType = "Warn";
-                    stafferUuid = "CONSOLE";
-                    if(sender instanceof Player) stafferUuid = m.getUuid(sender);
-                    punishDate = formatter.format(new Date());
-                    duration = "None";
-                    status = "Warn";
-                    unpunishDate = null;
-                    break;
-
-            }
-
-            reason = reason.replace("'", "''");
-    
-            sql = String.format("INSERT INTO cbp.player_histories (player_uuid, punishment_type, staff_uuid, punishment_reason, punishment_date, punishment_duration, unpunish_date, status) " +
-                                "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %s, '%s')", uuid, punishType, stafferUuid, reason, punishDate, duration, unpunishDate, status);
-
-            s.executeUpdate(sql);
-    
-        }catch (SQLException e){
-            e.printStackTrace();
         }
-    }
 
-    /**
-     * Returns all values from ign's existing ban.
-     * @param ign
-     * @return
-     */
-    public static Map<String, String> getBanDetails(String ign){
-        HashMap<String, String> values = new HashMap<String, String>();
-        try{
-    
-            String uuid = m.getUuid(ign);
+        PreparedStatement ps = c.prepareStatement("INSERT INTO cbp.player_histories (player_uuid, punishment_type, staff_uuid, punishment_reason, punishment_date, punishment_duration, unpunish_date, status)\n"
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
 
-            sql = String.format("SELECT * FROM cbp.active_bans WHERE player_uuid = '%s'", uuid);
-
-            rs = s.executeQuery(sql);
-            rs.next();
-
-            ResultSetMetaData md = rs.getMetaData();
-
-            for(int i = 2;i < 10;i++){
-                values.put(md.getColumnName(i), rs.getString(i));
-            }
-
-            return values;
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        return values;
-    }
-
-    /**
-     * Returns all values from ign's existing mute.
-     * @param ign
-     * @return
-     */
-    public static Map<String, String> getMuteDetails(String ign){
-        HashMap<String, String> values = new HashMap<String, String>();
-        try{
-    
-            String uuid = m.getUuid(ign);
-
-            sql = String.format("SELECT * FROM cbp.active_mutes WHERE player_uuid = '%s'", uuid);
-
-            rs = s.executeQuery(sql);
-            rs.next();
-
-            ResultSetMetaData md = rs.getMetaData();
-
-            for(int i = 2;i <= md.getColumnCount();i++){
-                values.put(md.getColumnName(i), rs.getString(i));
-            }
-
-            return values;
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        return values;
+        ps.setString(1, uuid.toString());
+        ps.setString(2, punishType);
+        ps.setString(3, stafferUuid);
+        ps.setString(4, reason);
+        ps.setString(5, punishDate);
+        ps.setString(6, duration);
+        ps.setString(7, unpunishDate);
+        ps.setString(8, status);
+        ps.executeUpdate();
     }
 
     /**
@@ -648,168 +276,282 @@ public class SqlMethods {
      * status = Overwritten, Lifted, Unbanned, Unmuted
      * <p>
      * sender is null if status is Lifted.
+     * @throws SQLException
      */
-    public static void updateHistoryStatus(String ign, String type, String status, CommandSender sender){
-        try{
-    
-            String uuid = m.getUuid(ign);
+    public static void updateHistoryStatus(UUID uuid, String type, String status, CommandSender sender) throws SQLException{
 
-            sql = String.format("UPDATE cbp.player_histories " +
-                                "SET status = '%s' " +
-                                "WHERE player_uuid = '%s' AND status = 'Active' AND punishment_type LIKE '%%%s%%'", status, uuid, type);
+        PreparedStatement ps = c.prepareStatement("UPDATE cbp.player_histories\n"
+                    + "SET status = ?\n"
+                    + "WHERE player_uuid = ? AND status = 'Active' AND punishment_type LIKE ?");
 
-            s.executeUpdate(sql);
+            ps.setString(1, status);
+            ps.setString(2, uuid.toString());
+            ps.setString(3, "%" + type + "%");
+            ps.executeUpdate();
 
             if(status.equalsIgnoreCase("Lifted")) return;
 
             String updater = "CONSOLE";
-            if(sender instanceof Player) updater = m.getUuid(sender.getName());
+            if(sender instanceof Player) updater = m.getUuid(sender).toString();
 
-            sql = String.format("UPDATE cbp.player_histories " +
-                                "SET staff_updater_uuid = '%s' " +
-                                "WHERE player_uuid = '%s' AND status IN ('Unbanned', 'Unmuted', 'Overwritten') AND staff_updater_uuid IS NULL", updater, uuid);
+            ps = c.prepareStatement("UPDATE cbp.player_histories\n"
+                    + "SET staff_updater_uuid = ?\n"
+                    + "WHERE player_uuid = ? AND status IN ('Unbanned', 'Unmuted', 'Overwritten') AND staff_updater_uuid IS NULL");
 
-            s.executeUpdate(sql);
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-    }
-
-    public static void mutePlayer(String ign, CommandSender sender, String reason, String duration){
-        try{
-    
-            String cDate = formatter.format(new Date());
-            String umDate = null;
-            String muteType = "Perm Mute";
-            if (!duration.equalsIgnoreCase("Permanent")){
-                umDate = "'" + m.calculateUnpunishDate(duration) + "'";
-                muteType = "Temp Mute";
-            }
-
-            String uuid = m.getUuid(ign);
-            reason = reason.replace("'", "''");
-
-            String muterUuid = "CONSOLE";
-            if (sender instanceof Player) muterUuid = m.getUuid(sender.getName());
-
-            if (!SqlCache.isPlayerMuted(ign))
-                sql = String.format(
-                        "INSERT INTO `cbp`.`active_mutes` (`mute_type`, `player_uuid`, `muter_uuid`, `mute_reason`, `mute_date`, `mute_duration`, `unmute_date`) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %s);",
-                        muteType, uuid, muterUuid, reason, cDate, duration, umDate);
-            else
-                sql = String.format(
-                        "UPDATE `cbp`.`active_mutes` " + "SET " + "`muter_uuid` = '%s', " + "`mute_type` = '%s', "
-                                + "`mute_reason` = '%s', " + "`mute_date` = '%s', " + "`mute_duration` = '%s', "
-                                + "`unmute_date` = %s " + "WHERE player_uuid = '%s'",
-                        muterUuid, muteType, reason, cDate, duration, umDate, uuid);
-
-            s.executeUpdate(sql);
-
-            SqlCache.setMute(ign);
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
+            ps.setString(1, updater);
+            ps.setString(2, uuid.toString());
+            ps.executeUpdate();
     }
 
     /**
      * Returns true if player has a history in cbp.player_histories.
      * @param ign
      * @return
+     * @throws SQLException
      */
-    public static boolean playerHasHistory(String ign){
-        try{
-    
-            String uuid = m.getUuid(ign);
+    public static boolean playerHasHistory(UUID uuid) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM cbp.player_histories WHERE player_uuid = ?;");
 
-            sql = "SELECT * FROM cbp.player_histories WHERE player_uuid = '" + uuid + "'";
+        ps.setString(1, uuid.toString());
+        rs = ps.executeQuery();
 
-            rs = s.executeQuery(sql);
-
-            return rs.next();
-    
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        return false;
+        return rs.next();
     }
 
     /**
      * Returns the list of histories of ign from cbp.player_histories.
+     * @throws SQLException
      */
-    public static String[][] getHistories(String ign){
-        try{
+    public static String[][] getHistories(UUID uuid) throws SQLException{
 
-            String uuid = m.getUuid(ign);
+        PreparedStatement ps = c.prepareStatement("SELECT COUNT(history_id) AS size\n" +
+                "FROM cbp.player_histories\n" +
+                "WHERE player_uuid = ?\n" +
+                "ORDER BY history_id DESC;");
 
-            sql = String.format("SELECT COUNT(history_id) AS size " +
-                                "FROM cbp.player_histories " +
-                                "WHERE player_uuid = '%s' " +
-                                "ORDER BY history_id DESC ", uuid);
+        ps.setString(1, uuid.toString());
+        rs = ps.executeQuery();
+        rs.next();
 
-            rs = s.executeQuery(sql);
-            rs.next();
+        String[][] histories = new String[rs.getInt("size")][9];
 
-            String[][] histories = new String[rs.getInt("size")][9];
-    
-            sql = String.format("SELECT * " +
-                                "FROM cbp.player_histories " +
-                                "WHERE player_uuid = '%s' " +
-                                "ORDER BY history_id DESC ", uuid);
+        ps = c.prepareStatement("SELECT *\n" +
+                "FROM cbp.player_histories\n" +
+                "WHERE player_uuid = ?\n" +
+                "ORDER BY history_id DESC;");
 
-            rs = s.executeQuery(sql);
+        ps.setString(1, uuid.toString());
 
-            int i = 0;
-            while(rs.next()){
-                for(int x = 0;x < 9;x++){
-                    histories[i][x] = rs.getString(x+2);
-                }
-                i++;
+        rs = ps.executeQuery();
+
+        int i = 0;
+        while(rs.next()){
+            for(int x = 0;x < 9;x++){
+                histories[i][x] = rs.getString(x+2);
             }
-            
-            return histories;
-    
-        }catch (SQLException e){
-            e.printStackTrace();
+            i++;
         }
-        return null;
+        
+        return histories;
     }
 
     /**
      * Returns true if ign is in cbp.players.
      * @param ign
      * @return
+     * @throws SQLException
      */
-    public static boolean isPlayerLogged(String ign){
-        try{
-    
-            String uuid = m.getUuid(ign);
+    public static boolean isPlayerLogged(UUID uuid) throws SQLException{
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM cbp.players WHERE player_uuid = ?");
+        ps.setString(1, uuid.toString());
+        rs = ps.executeQuery();
+        return rs.next();
+    }
 
-            sql = String.format("SELECT * FROM cbp.players WHERE player_uuid = '%s'", uuid);
+    public static void setPlayer(SqlPlayer sp) throws SQLException {
+        if (!isPlayerLogged(sp.getUuid())) {
+            PreparedStatement ps = c.prepareStatement("INSERT INTO cbp.players (player_uuid, player_ign, player_ip, join_date)"
+                    + "\nVALUES (?, ?, ?, ?);");
 
-            rs = s.executeQuery(sql);
-
-            return rs.next();
-    
-        }catch (SQLException e){
-            e.printStackTrace();
+            ps.setString(1, sp.getUuid().toString());
+            ps.setString(2, sp.getUsername());
+            ps.setString(3, sp.getIp());
+            ps.setString(4, sp.getJoinDateString());
+            ps.executeUpdate();
+        } else {
+            PreparedStatement ps = c.prepareStatement("UPDATE cbp.players"
+                    + "\nSET player_ign = ?, player_ip = ?"
+                    + "\nWHERE player_uuid = ?;");
+                    
+            ps.setString(1, sp.getUsername());
+            ps.setString(2, sp.getIp());
+            ps.setString(3, sp.getUuid().toString());
+            ps.executeUpdate();
         }
-        return false;
+    }
+
+    public static void loadPlayerCache() throws SQLException {
+
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM cbp.players;");
+
+        rs = ps.executeQuery();
+
+        while (rs.next()) {
+            SqlCache.loadPlayer(UUID.fromString(rs.getString("player_uuid")), rs.getString("player_ip"));
+        }
+
+    }
+
+    public static void loadBanCache() throws SQLException {
+
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM cbp.active_bans;");
+
+        rs = ps.executeQuery();
+
+        while (rs.next()) {
+            if (rs.getString("player_uuid") == null) continue;
+            if (!rs.getString("banner_uuid").equalsIgnoreCase("CONSOLE"))
+                SqlCache.setBan(UUID.fromString(rs.getString("player_uuid")), rs.getString("banned_ip"), m.getBanTypeFromString(rs.getString("ban_type")), rs.getString("ban_reason"), rs.getString("ban_duration"));
+            else
+                SqlCache.setBan(UUID.fromString(rs.getString("player_uuid")), rs.getString("banned_ip"), m.getBanTypeFromString(rs.getString("ban_type")), rs.getString("ban_reason"), rs.getString("ban_duration"), m.getUuid(rs.getString("banner_uuid")));
+        }
+
+    }
+
+    public static void loadMuteCache() throws SQLException {
+
+        PreparedStatement ps = c.prepareStatement("SELECT * FROM cbp.active_mutes;");
+
+        rs = ps.executeQuery();
+
+        while (rs.next()) {
+            if (!rs.getString("muter_uuid").equalsIgnoreCase("CONSOLE"))
+                SqlCache.setMute(UUID.fromString(rs.getString("player_uuid")), m.getMuteTypeFromString(rs.getString("mute_type")), rs.getString("mute_reason"), rs.getString("mute_duration"));
+            else
+                SqlCache.setMute(UUID.fromString(rs.getString("player_uuid")), m.getMuteTypeFromString(rs.getString("mute_type")), rs.getString("mute_reason"), rs.getString("mute_duration"), m.getUuid(rs.getString("muter_uuid")));
+        }
+
+    }
+
+    public static void removeBan(UUID uuid) throws SQLException {
+        PreparedStatement ps = c.prepareStatement("DELETE FROM cbp.active_bans WHERE player_uuid = ?");
+
+        ps.setString(1, uuid.toString());
+        ps.executeUpdate();
+    }
+
+    public static void setNewPlayers(Set<SqlPlayer> collect) throws SQLException {
+
+        PreparedStatement ps = c.prepareStatement("INSERT INTO cbp.players (player_uuid, player_ign, player_ip, join_date)"
+                + "\nVALUES (?, ?, ?, ?)"
+                + "\nON DUPLICATE KEY UPDATE player_ign = ?, player_ip = ?");
+
+        for (SqlPlayer sp : collect) {
+            ps.setString(1, sp.getUuid().toString());
+            ps.setString(2, sp.getUsername());
+            ps.setString(3, sp.getIp());
+            ps.setString(4, sp.getJoinDateString());
+            ps.setString(5, sp.getUsername());
+            ps.setString(6, sp.getIp());
+            ps.executeUpdate();
+            sp.setUpdated(false);
+        }
+
+    }
+
+    public static void setNewBans(Set<SqlBanned> collect) throws SQLException {
+
+        PreparedStatement ps = c.prepareStatement("INSERT INTO cbp.active_bans (ban_type, player_uuid, banner_uuid, ban_reason, ban_date, ban_duration, unban_date, banned_ip)\n"
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                + "\nON DUPLICATE KEY UPDATE ban_type = ?, banner_uuid = ?, ban_reason = ?, ban_date = ?, ban_duration = ?, unban_date = ?, banned_ip = ?");
+
+        for (SqlBanned sb : collect) {
+            ps.setString(1, sb.getBanType().toString());
+            ps.setString(2, sb.getUuid().toString());
+            ps.setString(3, sb.getBannerUuid());
+            ps.setString(4, sb.getReason());
+            ps.setString(5, sb.getBanDateString());
+            ps.setString(6, sb.getDuration());
+            ps.setString(7, sb.getUnbanDateString());
+            ps.setString(8, sb.getIp());
+            ps.setString(9, sb.getBanType().toString());
+            ps.setString(10, sb.getBannerUuid());
+            ps.setString(11, sb.getReason());
+            ps.setString(12, sb.getBanDateString());
+            ps.setString(13, sb.getDuration());
+            ps.setString(14, sb.getUnbanDateString());
+            ps.setString(15, sb.getIp());
+            ps.executeUpdate();
+            sb.setInDatabase(true);
+        }
+
+    }
+
+    public static void setNewMutes(Set<SqlMuted> collect) throws SQLException {
+
+        PreparedStatement ps = c.prepareStatement("INSERT INTO `cbp`.`active_mutes` (`mute_type`, `player_uuid`, `muter_uuid`, `mute_reason`, `mute_date`, `mute_duration`, `unmute_date`)"
+                    + "\nVALUES (?, ?, ?, ?, ?, ?, ?)"
+                    + "\nON DUPLICATE KEY UPDATE mute_type = ?, muter_uuid = ?, mute_reason = ?, mute_date = ?, mute_duration = ?, unmute_date = ?");
+
+        for (SqlMuted sm : collect) {
+            ps.setString(1, sm.getMuteType().toString());
+            ps.setString(2, sm.getUuid().toString());
+            ps.setString(3, sm.getMuterUuid());
+            ps.setString(4, sm.getReason());
+            ps.setString(5, sm.getMuteDateString());
+            ps.setString(6, sm.getDuration());
+            ps.setString(7, sm.getUnmuteDateString());
+            ps.setString(8, sm.getMuteType().toString());
+            ps.setString(9, sm.getMuterUuid());
+            ps.setString(10, sm.getReason());
+            ps.setString(11, sm.getMuteDateString());
+            ps.setString(12, sm.getDuration());
+            ps.setString(13, sm.getUnmuteDateString());
+            ps.executeUpdate();
+            sm.setInDatabase(true);
+        }
+        
+    }
+
+    public static void removeMute(UUID uuid) throws SQLException {
+        PreparedStatement ps = c.prepareStatement("DELETE FROM cbp.active_mutes WHERE player_uuid = ?");
+
+        ps.setString(1, uuid.toString());
+        ps.executeUpdate();
+    }
+
+    public static void setMute(SqlMuted sm) throws SQLException {
+        PreparedStatement ps = c.prepareStatement("INSERT INTO `cbp`.`active_mutes` (`mute_type`, `player_uuid`, `muter_uuid`, `mute_reason`, `mute_date`, `mute_duration`, `unmute_date`)"
+                + "\nVALUES (?, ?, ?, ?, ?, ?, ?)"
+                + "\nON DUPLICATE KEY UPDATE mute_type = ?, muter_uuid = ?, mute_reason = ?, mute_date = ?, mute_duration = ?, unmute_date = ?");
+
+        ps.setString(1, sm.getMuteType().toString());
+        ps.setString(2, sm.getUuid().toString());
+        ps.setString(3, sm.getMuterUuid());
+        ps.setString(4, sm.getReason());
+        ps.setString(5, sm.getMuteDateString());
+        ps.setString(6, sm.getDuration());
+        ps.setString(7, sm.getUnmuteDateString());
+        ps.setString(8, sm.getMuteType().toString());
+        ps.setString(9, sm.getMuterUuid());
+        ps.setString(10, sm.getReason());
+        ps.setString(11, sm.getMuteDateString());
+        ps.setString(12, sm.getDuration());
+        ps.setString(13, sm.getUnmuteDateString());
+        ps.executeUpdate();
+    }
+
+    public static void clearPlayerCache() throws SQLException {
+        PreparedStatement ps = c.prepareStatement("TRUNCATE cbp.players;");
+        ps.execute();
     }
 
 }
 
 /*
 
-public static void name(){
-    try{
+public static void name() throws SQLException {
 
-        
-
-    }catch (SQLException e){
-        e.printStackTrace();
-    }
 }
 
 */

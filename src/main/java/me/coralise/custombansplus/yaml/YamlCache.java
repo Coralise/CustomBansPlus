@@ -1,67 +1,63 @@
 package me.coralise.custombansplus.yaml;
 
 import me.coralise.custombansplus.CustomBansPlus;
-import me.coralise.custombansplus.GetJavaPlugin;
+import me.coralise.custombansplus.ClassGetter;
+import me.coralise.custombansplus.enums.BanType;
+import me.coralise.custombansplus.enums.MuteType;
+import me.coralise.custombansplus.yaml.objects.YamlBanned;
+import me.coralise.custombansplus.yaml.objects.YamlMuted;
+import me.coralise.custombansplus.yaml.objects.YamlPlayer;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
 public class YamlCache {
 
-    private static ConcurrentHashMap<String, String> newPlayerCache = new ConcurrentHashMap<String, String>();
-    private static ConcurrentHashMap<String, String> playerCache = new ConcurrentHashMap<String, String>();
-    private static ConcurrentHashMap<String, String> playerIpCache = new ConcurrentHashMap<String, String>();
-    private static ConcurrentHashMap<String, String> banCache = new ConcurrentHashMap<String, String>();
-    private static ConcurrentHashMap<String, String> muteCache = new ConcurrentHashMap<String, String>();
-    private static HashSet<String> ociCache = new HashSet<String>();
+     static ConcurrentHashMap<UUID, YamlPlayer> playerCache = new ConcurrentHashMap<UUID, YamlPlayer>();
+     static ConcurrentHashMap<UUID, YamlBanned> banCache = new ConcurrentHashMap<UUID, YamlBanned>();
+     static ConcurrentHashMap<UUID, YamlMuted> muteCache = new ConcurrentHashMap<UUID, YamlMuted>();
+     static HashSet<UUID> ociCache = new HashSet<UUID>();
 
-    static CustomBansPlus m = (CustomBansPlus) GetJavaPlugin.getPlugin();
-
-    private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-    // newPlayerCache: <uuid, type>
-    // playerCache: <uuid, ign>
-    // playerIpCache: <uuid, ip>
-    // banCache: <uuid, unbanDate>
-    // muteCache: <uuid, unmuteDate>
-
-    // AltsConfig
-    // ip:
-    //  uuid
+    static CustomBansPlus m = (CustomBansPlus) ClassGetter.getPlugin();
+    static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
      * Saves current player caches to data.
      */
     private static void savePlayerCache(){
-        if(m.getConfig().getBoolean("notify-cache-save")) 
+        if(m.getConfig().getBoolean("cache.notify-save")) 
             Bukkit.getOnlinePlayers().forEach(p -> {
                 if(p.hasPermission("custombansplus.admin"))
                     p.sendMessage("§e[CBP] §fSaving player cache...");
             });
         long startTime = System.currentTimeMillis();
 
-        newPlayerCache.keySet().forEach(uuid -> {
-            if(newPlayerCache.get(uuid).endsWith(" ip")){
-                List<String> uuids = m.getAltsConfig().getStringList(playerIpCache.get(uuid));
-                uuids.remove(uuid);
-                m.getAltsConfig().set(playerIpCache.get(uuid), uuids);
+        playerCache.values().stream().filter(yp -> yp.isUpdate() || yp.isNewPlayer()).forEach(yp -> {
+            if (yp.isUpdate()) {
+                ArrayList<String> oldList = (ArrayList<String>) m.getAltsConfig().getStringList(yp.getOldIp());
+                oldList.remove(yp.getUuid().toString());
+                m.getAltsConfig().set(yp.getOldIp(), oldList);
+                yp.setOldIp(yp.getIp());
             }
-            List<String> uuids = m.getAltsConfig().getStringList(playerIpCache.get(uuid));
-            uuids.add(uuid);
-            m.getAltsConfig().set(playerIpCache.get(uuid), uuids);
+            String ip = yp.getIp();
+            List<String> list = m.getAltsConfig().getStringList(ip);
+            list.add(yp.getUuid().toString());
+            m.getAltsConfig().set(ip, list);
+            yp.setNewPlayer(false);
+            yp.setUpdate(false);
         });
-
-        newPlayerCache.clear();
 
         try {
             m.getAltsConfig().save(m.getAltsFile());
@@ -71,7 +67,7 @@ public class YamlCache {
 
         long endTime = System.currentTimeMillis();
         long time = endTime - startTime;
-        if(m.getConfig().getBoolean("notify-cache-save")) 
+        if(m.getConfig().getBoolean("cache.notify-save")) 
             Bukkit.getOnlinePlayers().forEach(p -> {
                 if(p.hasPermission("custombansplus.admin")){
                     String stTime = "";
@@ -87,25 +83,37 @@ public class YamlCache {
      * Sets up cache, used on server startup.
      */
     public static void setupCache(){
+
+        for (String ip : m.getAltsConfig().getKeys(false))
+            for (String strUuid : m.getAltsConfig().getStringList(ip))
+                playerCache.put(UUID.fromString(strUuid), new YamlPlayer(UUID.fromString(strUuid), ip, false, false));
+
+        m.getBansConfig().getKeys(false).stream().filter(k -> k.length() == 36).forEach(strUuid -> {
+            banCache.put(UUID.fromString(strUuid), new YamlBanned(
+                UUID.fromString(strUuid),
+                m.getBansConfig().getString(strUuid + ".type"), 
+                m.getBansConfig().getString(strUuid + ".reason"), 
+                m.getBansConfig().getString(strUuid + ".duration"), 
+                m.getBansConfig().getString(strUuid + ".banned-by"),
+                m.getBansConfig().getString(strUuid + ".banned-on"),
+                m.getBansConfig().getString(strUuid + ".unban-date"),
+                m.getBansConfig().getString(strUuid + ".ip")
+            ));
+        });
         
-        for(String ip : m.getAltsConfig().getKeys(false))
-            for(String uuid : m.getAltsConfig().getStringList(ip))
-                playerCache.put(uuid, m.getName(uuid));
+        for (String strUuid : m.getMutesConfig().getKeys(false))
+            muteCache.put(UUID.fromString(strUuid), new YamlMuted(
+                UUID.fromString(strUuid),
+                m.getMutesConfig().getString(strUuid + ".type"),
+                m.getMutesConfig().getString(strUuid + ".reason"),
+                m.getMutesConfig().getString(strUuid + ".duration"),
+                m.getMutesConfig().getString(strUuid + ".muted-by"),
+                m.getMutesConfig().getString(strUuid + ".muted-on"),
+                m.getMutesConfig().getString(strUuid + ".unmute-by")
+            ));
 
-        for(String ip : m.getAltsConfig().getKeys(false))
-            for(String uuid : m.getAltsConfig().getStringList(ip))
-                playerIpCache.put(uuid, ip);
-        
-        for(String uuid : m.getBansConfig().getKeys(false)){
-                banCache.put(uuid, m.getBansConfig().getString(uuid+".unban-date"));
-        }
-
-        for(String muteUuid : m.getMutesConfig().getKeys(false)){
-            muteCache.put(muteUuid, m.getMutesConfig().getString(muteUuid+".unmute-by"));
-        }
-
-        for(String uuid : m.getOciConfig().getStringList("offline-ci")){
-            ociCache.add(uuid);
+        for(String strUuid : m.getOciConfig().getStringList("offline-ci")){
+            ociCache.add(UUID.fromString(strUuid));
         }
 
     }
@@ -116,8 +124,8 @@ public class YamlCache {
      * @param currentIp
      * @return
      */
-    public static boolean isIpDifferent(String uuid, String currentIp){
-        String loggedIp = playerIpCache.get(uuid);
+    public static boolean isIpDifferent(UUID uuid, String currentIp){
+        String loggedIp = playerCache.get(uuid).getIp();
         return (!loggedIp.equalsIgnoreCase(currentIp));
     }
 
@@ -126,9 +134,9 @@ public class YamlCache {
      * @param ign
      * @return
      */
-    public static boolean isIgnDifferent(String uuid){
-        String loggedIgn = playerCache.get(uuid);
-        return (!loggedIgn.equalsIgnoreCase(m.getName(uuid)));
+    public static boolean isIgnDifferent(UUID uuid, String newIgn){
+        String loggedIgn = playerCache.get(uuid).getUsername();
+        return (!loggedIgn.equalsIgnoreCase(newIgn));
     }
 
     /**
@@ -136,7 +144,7 @@ public class YamlCache {
      * @param ign
      * @return
      */
-    public static boolean isPlayerLogged(String uuid){
+    public static boolean isPlayerLogged(UUID uuid){
         return playerCache.containsKey(uuid);
     }
 
@@ -145,7 +153,7 @@ public class YamlCache {
      * @param ign
      * @return True if player is in cache. False if not.
      */
-    public static boolean isPlayerBanned(String uuid){
+    public static boolean isPlayerBanned(UUID uuid){
         return banCache.containsKey(uuid);
     }
 
@@ -155,7 +163,57 @@ public class YamlCache {
      * @return True if ip is in cache. False if not.
      */
     public static boolean isIpBanned(String ip){
-        return banCache.containsKey(ip);
+        for (YamlBanned yamlBanned : banCache.values()) {
+            if (yamlBanned.getIp().equalsIgnoreCase(ip) && (yamlBanned.getBanType() == BanType.TEMP_IP_BAN || yamlBanned.getBanType() == BanType.PERM_IP_BAN))
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if player <code>ip</code> is in ban cache.
+     * @return True if ip is in cache. False if not.
+     */
+    public static boolean isIpBanned(UUID uuid){
+        YamlBanned yamlBanned = banCache.get(uuid);
+        return (yamlBanned.getBanType() == BanType.TEMP_IP_BAN || yamlBanned.getBanType() == BanType.PERM_IP_BAN);
+    }
+
+    /**
+     * Copies over existing IP Ban to the uuid.
+     */
+    public static void copyIPBan (UUID uuid) {
+        String ip = playerCache.get(uuid).getIp();
+        for (YamlBanned yb : banCache.values()) {
+            if (yb.getIp().equalsIgnoreCase(ip)) {
+                banCache.put(uuid, new YamlBanned(
+                    uuid,
+                    yb.getBanType().toString(), 
+                    yb.getReason(), 
+                    yb.getDuration(), 
+                    yb.getBannerUuid(),
+                    yb.getBanDateString(),
+                    yb.getUnbanDateString(),
+                    yb.getIp()
+                ));
+                YamlBanned yamlBanned = YamlCache.getBannedObject(uuid);
+                m.getBansConfig().set(uuid.toString() + ".type", yamlBanned.getBanType().toString());
+                m.getBansConfig().set(uuid.toString() + ".duration", yamlBanned.getDuration());
+                m.getBansConfig().set(uuid.toString() + ".reason", yamlBanned.getReason());
+                m.getBansConfig().set(uuid.toString() + ".banned-by", yamlBanned.getBannerUuid());
+                m.getBansConfig().set(uuid.toString() + ".ip", yamlBanned.getIp());
+                m.getBansConfig().set(uuid.toString() + ".banned-on", formatter.format(yamlBanned.getBanDate()));
+                if (yamlBanned.getUnbanDate() != null)
+                    m.getBansConfig().set(uuid.toString() + ".unban-date", formatter.format(yamlBanned.getUnbanDate()));
+                try {
+                    m.getBansConfig().save(m.getBansFile());
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                YamlAbstractBanCommand.addHistory(yamlBanned);
+                break;
+            }
+        }
     }
 
     /**
@@ -163,7 +221,7 @@ public class YamlCache {
      * @param ign
      * @return True if player is in cache. False if not.
      */
-    public static boolean isPlayerMuted(String uuid){
+    public static boolean isPlayerMuted(UUID uuid){
         return muteCache.containsKey(uuid);
     }
 
@@ -173,8 +231,8 @@ public class YamlCache {
      * If true, saves cached data to database/ymls.
      */
     private static void checkCaches(){
-        int amount = m.getConfig().getInt("player-save-cache");
-        if(playerCache.size() >= amount) savePlayerCache();
+        int amount = m.getConfig().getInt("cache.save-at");
+        if(playerCache.values().stream().filter(yp -> yp.isUpdate() || yp.isNewPlayer()).collect(Collectors.toList()).size() % amount == 0) savePlayerCache();
     }
 
     /**
@@ -187,46 +245,52 @@ public class YamlCache {
     /**
      * Checks if unban date is before current date.
      */
-    public static boolean isBanLifted(String uuid){
-        String ubDate = banCache.get(uuid);
-        if(ubDate.equalsIgnoreCase("None")) return false;
+    public static boolean isBanLifted(UUID uuid){
+        if (banCache.get(uuid).getBanType() == BanType.PERM_BAN || banCache.get(uuid).getBanType() == BanType.PERM_IP_BAN) return false;
+        Date ubDate = banCache.get(uuid).getUnbanDate();
         Date cDate = new Date();
-        Date unbanDate = new Date();
-        try {
-            unbanDate = formatter.parse(ubDate);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return cDate.after(unbanDate);
+        return cDate.after(ubDate);
+    }
+
+    public static boolean isBanLifted(String ip){
+        YamlBanned yb = null;
+        for (YamlBanned ban : banCache.values())
+            if (ban.getIp().equalsIgnoreCase(ip)) {
+                yb = ban;
+                break;
+            }
+        if (yb == null) return false;
+        if (yb.getBanType() == BanType.PERM_BAN) return false;
+        Date ubDate = yb.getUnbanDate();
+        Date cDate = new Date();
+        return cDate.after(ubDate);
     }
 
     /**
      * Checks if unmute date is before current date.
      */
-    public static boolean isMuteLifted(String uuid){
-        String umDate = muteCache.get(uuid);
-        if(umDate.equalsIgnoreCase("None")) return false;
+    public static boolean isMuteLifted(UUID uuid){
+        if (muteCache.get(uuid).getMuteType() == MuteType.PERM_MUTE) return false;
+        Date umDate = muteCache.get(uuid).getUnmuteDate();
         Date cDate = new Date();
-        Date unmuteDate = new Date();
-        try {
-            unmuteDate = formatter.parse(umDate);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return cDate.after(unmuteDate);
+        return cDate.after(umDate);
     }
 
     /**
      * Removes ban of ign in both cache and yaml file.
      * @param ign
      */
-    public static void removeBan(String uuid){
-        banCache.remove(uuid);
-        m.getBansConfig().set(uuid, null);
-        String ip = m.getYamlIp(m.getName(uuid));
-        if(YamlCache.isIpBanned(ip)){
+    public static void removeBan(UUID uuid){
+        String ip = banCache.get(uuid).getIp();
+        if(YamlCache.isIpBanned(uuid)){
             m.getBansConfig().set(ip, null);
-            banCache.remove(ip);
+            for (UUID uuid2 : getSameIps(ip)) {
+                banCache.remove(uuid2);
+                m.getBansConfig().set(uuid2.toString(), null);
+            }
+        } else {
+            banCache.remove(uuid);
+            m.getBansConfig().set(uuid.toString(), null);
         }
         try {
             m.getBansConfig().save(m.getBansFile());
@@ -239,9 +303,9 @@ public class YamlCache {
      * Removes mute of ign in both cache and yaml file.
      * @param ign
      */
-    public static void removeMute(String uuid){
+    public static void removeMute(UUID uuid){
         muteCache.remove(uuid);
-        m.getMutesConfig().set(uuid, null);
+        m.getMutesConfig().set(uuid.toString(), null);
         try {
             m.getMutesConfig().save(m.getMutesFile());
         } catch (IOException e) {
@@ -255,51 +319,76 @@ public class YamlCache {
      * value = uuid or ip
      * @param ign
      */
-    public static void setBan(String value){
-        banCache.put(value, m.getBansConfig().getString(value+".unban-date"));
+    public static void setBan(UUID uuid, String ip, BanType banType, String reason, String duration, String bannerUuid){
+        banCache.put(uuid, new YamlBanned(uuid, ip, banType, reason, duration, bannerUuid));
+    }
+
+    /**
+     * Adds or updates the new ban to the cache.
+     * <p>
+     * value = uuid or ip
+     * @param ign
+     */
+    public static void setBan(UUID uuid, String ip, BanType banType, String reason, String duration){
+        banCache.put(uuid, new YamlBanned(uuid, ip, banType, reason, duration, null));
+    }
+
+    /**
+     * Bans every player in the player cache with the same IP.
+     */
+    public static void setBan(String ip, BanType banType, String reason, String duration, String bannerUuid){
+        for (UUID uuid : getSameIps(ip))
+            banCache.put(uuid, new YamlBanned(uuid, ip, banType, reason, duration, bannerUuid));
+    }
+
+    /**
+     * Bans every player in the player cache with the same IP.
+     */
+    public static void setBan(String ip, BanType banType, String reason, String duration){
+        for (UUID uuid : getSameIps(ip))
+            banCache.put(uuid, new YamlBanned(uuid, ip, banType, reason, duration, null));
     }
 
     /**
      * Adds or updates the new mute to the cache.
      * @param ign
      */
-    public static void setMute(String uuid){
-        muteCache.put(uuid, m.getMutesConfig().getString(uuid+".unmute-by"));
+    public static void setMute(UUID uuid, MuteType muteType, String reason, String duration, String muterUuid){
+        muteCache.put(uuid, new YamlMuted(uuid, muteType, reason, duration, muterUuid));
     }
 
+    /**
+     * Adds or updates the new mute to the cache.
+     * @param ign
+     */
+    public static void setMute(UUID uuid, MuteType muteType, String reason, String duration){
+        muteCache.put(uuid, new YamlMuted(uuid, muteType, reason, duration, null));
+    }
+    
     /**
      * Sets or updates playerIpCache.
      * @param ign
      */
-    public static void setPlayerIP(String uuid){
+    /*public static void setPlayerIP(String uuid){
         playerIpCache.put(uuid, m.getYamlIp(m.getName(uuid)));
-    }
+    }*/
 
     /**
      * Sets or updates playerCache.
      * @param ign
      */
-    public static void setPlayer(String uuid){
-        playerCache.put(uuid, m.getName(uuid));
-        checkCaches();
-    }
-
-    /**
-     * Adds player to the new players cache or updates player's IP.
-     * <p>
-     * Used for first time enters; not yet in database, still in cache.
-     * <p>
-     * &lt;IGN, type&gt;
-     * <p>
-     * type = new, ip, ign
-     */
-    public static void setNewPlayer(String uuid, String type){
-        if(type.equalsIgnoreCase("new")){
-            newPlayerCache.put(uuid, "new");
-        }else if(type.equalsIgnoreCase("ip")){
-            String ip = m.getYamlIp(m.getName(uuid));
-            newPlayerCache.put(uuid, ip + " ip");
+    public static void setPlayer(UUID uuid, String ip){
+        if (playerCache.containsKey(uuid)) {
+            if (!playerCache.get(uuid).getUsername().equalsIgnoreCase(m.getName(uuid.toString())) || !playerCache.get(uuid).getIp().equalsIgnoreCase(ip)) {
+                playerCache.get(uuid).setUpdate(true);
+                playerCache.get(uuid).setIp(ip);
+                playerCache.get(uuid).setUsername(m.getName(uuid.toString()));
+                checkCaches();
+            }
+            return;
         }
+        playerCache.put(uuid, new YamlPlayer(uuid, ip, false, true));
+        checkCaches();
     }
 
     /**
@@ -307,8 +396,9 @@ public class YamlCache {
      */
     public static void refreshPlayerCaches(){
         playerCache.clear();
-        playerIpCache.clear();
-        setupCache();
+        for (String ip : m.getAltsConfig().getKeys(false))
+            for (String strUuid : m.getAltsConfig().getStringList(ip))
+                playerCache.put(UUID.fromString(strUuid), new YamlPlayer(UUID.fromString(strUuid), ip, false, false));
     }
 
     /**
@@ -317,8 +407,8 @@ public class YamlCache {
      * Used for debugging and testing.
      */
     public static void printOutBanCache(){
-        for(String key : banCache.keySet())
-            System.out.println(key + " " + banCache.get(key));
+        for(UUID key : banCache.keySet())
+            System.out.println(key.toString() + " " + banCache.get(key).getUnbanDateString());
     }
 
     /**
@@ -327,8 +417,8 @@ public class YamlCache {
      * Used for debugging and testing.
      */
     public static void printOutMuteCache(){
-        for(String key : muteCache.keySet())
-            System.out.println(key + " " + muteCache.get(key));
+        for(UUID key : muteCache.keySet())
+            System.out.println(key.toString() + " " + muteCache.get(key).getUuid().toString());
     }
 
     /**
@@ -337,28 +427,8 @@ public class YamlCache {
      * Used for debugging and testing.
      */
     public static void printOutPlayerCache(){
-        for(String key : playerCache.keySet())
-            System.out.println(key + " " + playerCache.get(key));
-    }
-
-    /**
-     * Prints out all keys and their values in the Player IPs Cache to the console.
-     * <p>
-     * Used for debugging and testing.
-     */
-    public static void printOutPlayerIpCache(){
-        for(String key : playerIpCache.keySet())
-            System.out.println(key + " " + playerIpCache.get(key));
-    }
-
-    /**
-     * Prints out all keys and their values in the Player IPs Cache to the console.
-     * <p>
-     * Used for debugging and testing.
-     */
-    public static void printOutNewPlayerCache(){
-        for(String key : newPlayerCache.keySet())
-            System.out.println(key + " " + newPlayerCache.get(key));
+        for(UUID key : playerCache.keySet())
+            System.out.println(key.toString() + " " + playerCache.get(key).getUsername());
     }
 
     /**
@@ -379,8 +449,8 @@ public class YamlCache {
         return null;
     }
 
-    public static String getYamlIp(String uuid){
-        return playerIpCache.get(uuid);
+    public static String getYamlIp(UUID uuid){
+        return playerCache.get(uuid).getIp();
     }
 
     /**
@@ -388,10 +458,10 @@ public class YamlCache {
      * @param ip
      * @return
      */
-    public static List<String> getSameIps(String ip){
-        List<String> igns = new ArrayList<String>();
-        for(String uuid : playerIpCache.keySet()){
-            if(playerIpCache.get(uuid).equalsIgnoreCase(ip)) igns.add(m.getName(uuid));
+    public static Set<UUID> getSameIps(String ip){
+        HashSet<UUID> igns = new HashSet<UUID>();
+        for(UUID uuid : playerCache.keySet()){
+            if(playerCache.get(uuid).getIp().equalsIgnoreCase(ip)) igns.add(uuid);
         }
         return igns;
     }
@@ -402,9 +472,10 @@ public class YamlCache {
      */
     public static String listAlts(String ip){
         String ignList = "";
-        for(String ign : YamlCache.getSameIps(ip)){
-            if (YamlCache.isPlayerBanned(m.getUuid(ign))) ign = "§c" + ign;
-            else if(m.getOfflinePlayer(ign).isOnline()) ign = "§a" + ign;
+        for(UUID uuid : YamlCache.getSameIps(ip)){
+            String ign = playerCache.get(uuid).getUsername();
+            if (YamlCache.isPlayerBanned(uuid)) ign = "§c" + ign;
+            else if(m.getOfflinePlayer(uuid).isOnline()) ign = "§a" + ign;
             else ign = "§7" + ign;
             ignList = ignList.concat(ign + "§f, ");
         }
@@ -412,8 +483,49 @@ public class YamlCache {
         return ignList;
     }
 
-    public static Set<String> getOciCache(){
+    public static Set<UUID> getOciCache(){
         return ociCache;
+    }
+
+    /**
+     * Gets the player object of UUID. Returns null if player is not logged.
+     * @param uuid = UUID of the player.
+     */
+    public static YamlPlayer getPlayerObject (UUID uuid) {
+        return playerCache.get(uuid);
+    }
+
+    /**
+     * Gets the banned object of UUID. Returns null if uuid is not banned.
+     * @param uuid = UUID of the player.
+     */
+    public static YamlBanned getBannedObject (UUID uuid) {
+        return banCache.get(uuid);
+    }
+
+    /**
+     * Gets the muted object of UUID. Returns null if uuid is not banned.
+     * @param uuid = UUID of the player.
+     */
+    public static YamlMuted getMutedObject (UUID uuid) {
+        return muteCache.get(uuid);
+    }
+
+    public static Collection<YamlPlayer> getPlayerObjects() {
+        return playerCache.values();
+    }
+
+    public static void removeIpBan(String ip) {
+        m.getBansConfig().set(ip, null);
+        banCache.values().stream().filter(yb -> yb.getIp().equalsIgnoreCase(ip)).forEach(yb -> {
+            banCache.remove(yb.getUuid());
+            m.getBansConfig().set(yb.getUuid().toString(), null);
+        });
+        try {
+            m.getBansConfig().save(m.getBansFile());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     
 }
