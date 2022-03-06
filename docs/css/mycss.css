@@ -1,0 +1,33 @@
+.transition-slow {
+    transition: 2s;
+}
+
+.transition-medium {
+    transition: 1s;
+}
+
+.transition-fast {
+    transition: 0.5s;
+}
+
+.white-border {
+    border: 5px solid white;
+}
+
+.height-100 {
+    height: 100%;
+}
+
+.valign {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.drop-shadow {
+    text-shadow: 0px 3px 5px black;
+}
+
+.monospace {
+    font-family: monospace;
+}

@@ -3,16 +3,47 @@
   <head>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="css/mycss.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>
         CBP Wiki
     </title>
-    <link rel="icon" href="himg/CBPLogo_Small.png">
+    <link rel="icon" href="img/CBPLogo_Small.png">
   </head>
-  <body>
+  <body class="grey darken-4 monospace">
 
-    
+    <div id="title-parallax" class="parallax-container grey darken-4 transition-slow">
+      <div class="container valign height-100">
+        <h3 id="title-text" class="grey-text text-lighten-3 drop-shadow"></h3>
+      </div>
+      <div class="parallax"><img src="img/Parallax_Background.png"></div>
+    </div>
 
-    <script type="text/javascript" src="js/materialize.min.js"></script>
+    <script type="text/javascript" src="js/materialize.min.js">
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var elems = document.querySelectorAll('.parallax');
+        var instances = M.Parallax.init(elems);
+
+        setTimeout(function(){
+          document.getElementById("title-parallax").classList.remove("grey");
+          document.getElementById("title-parallax").classList.remove("darken-4");
+        }, 1000);
+
+        setTimeout(function() {
+          var text = "Custom Bans Plus";
+          for (var i = 0;i < text.length+1;i++) {
+            doSetTimeout(i, text);
+          }
+        }, 2000);
+      });
+      
+      function doSetTimeout(i, text) {
+        setTimeout(function() {
+          document.getElementById("title-text").innerHTML = text.substring(0, i);
+        }, 100 * (i+1));
+      }
+    </script>
   </body>
 </html>
