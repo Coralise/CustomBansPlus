@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="css/mycss.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>
+        Custom Bans Plus
+    </title>
+    <link rel="icon" href="img/CBPLogo_Small.png">
+  </head>
+  <body class="grey darken-4 sans-serif white-text">
+
+    <div class="navbar-fixed">
+      <nav style="height:50px;">
+        <div class="nav-wrapper grey darken-4 drop-shadow">
+          <div class="container">
+            <a href="index.html"><img src="img/CBPLogo_Small.png" class="brand-logo" style="height: 40px; margin-top: 5px;" /></a>
+            <ul id="nav-mobile" class="right" style="margin-top:-7px;">
+              <a id="dl-btn" class="waves-effect waves-light btn-small red darken-4" href="download.html"><i class="material-icons left">file_download</i>Download Now</a>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <div class="container top-margin">
+        <h4 class="red-text text-darken-4 monospace bold text-shadow">Direct Download Links</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th class="red-text text-darken-4 monospace bold text-shadow">MC Version</th>
+                    <th class="red-text text-darken-4 monospace bold text-shadow">CBP Version</th>
+                    <th class="red-text text-darken-4 monospace bold text-shadow">Download Link</th>
+                    <th class="red-text text-darken-4 monospace bold text-shadow">Downloads</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>1.18.2</td>
+                    <td id="cbpLatestVersionLabel"></td>
+                    <td><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4"><i class="material-icons">file_download</i></a></td>
+                    <td id="cbpLatestVersionDownloads"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container top-margin">
+        <h4 class="red-text text-darken-4 monospace bold text-shadow">Update Log</h4>
+        <i class="material-icons left">edit</i><p>Under Construction!</p>
+    </div>
+
+    <footer class="page-footer grey darken-4 drop-shadow">
+      <div class="container">
+        <div class="row">
+          <div class="col l6 s12">
+            <h5 class="red-text text-darken-4 monospace bold text-shadow">Support our Developers! 💕</h5>
+            <p class="grey-text text-lighten-4">If you like our plugins, feel free to leave a coffee for one of us! It'll surely make our day happier.</p>
+            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support us with a coffee!', '#29abe0', 'A0A838CB2');kofiwidget2.draw();</script> 
+            <div id="donate-button-container" class="top-margin">
+              <div id="donate-button"></div>
+              <script src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js" charset="UTF-8"></script>
+              <script>
+              PayPal.Donation.Button({
+              env:'production',
+              hosted_button_id:'Y9FZLHQ4GBCJG',
+              image: {
+              src:'https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif',
+              alt:'Donate with PayPal button',
+              title:'PayPal - The safer, easier way to pay online!',
+              }
+              }).render('#donate-button');
+              </script>
+              </div>
+          </div>
+          <div class="col l4 offset-l2 s12">
+            <h5 class="red-text text-darken-4 monospace bold text-shadow">Links</h5>
+            <ul>
+              <li><a class="blue-text text-darken-3" href="https://discord.io/CoralReef" target=”_blank”>Discord</a></li>
+              <li><a class="deep-purple-text text-darken-1" href="https://github.com/Coralise/CustomBansPlus/wiki" target=”_blank”>Github Wiki</a></li>
+              <li><a class="orange-text text-darken-3" href="https://www.spigotmc.org/resources/custom-bans-plus-fully-customizable-ban-manager.89075/" target=”_blank”>SpigotMC</a></li>
+              <li><a class="orange-text text-darken-4" href="https://dev.bukkit.org/projects/custom-bans-plus-fully-customizable-ban-manager" target=”_blank”>Curseforge</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-copyright">
+        <div class="container">
+        © 2022 WG Studios, Coralise, and the Coral Reef Network.
+        </div>
+      </div>
+    </footer>
+
+    <!-- <script type="text/javascript" src="data.json"></script> -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="js/materialize.min.js"></script>
+    <script>
+        var dData;
+        var latestCbpVersion;
+
+
+        $(document).ready(function() {
+            $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(data) {
+                latestCbpVersion = data["name"];
+                document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
+            });
+
+            fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
+                headers: {  
+                    'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
+                }
+            })
+            .then(res =>
+              res.json())
+            .then(d => {
+                dData = d;
+                console.log(dData);
+                document.getElementById("cbpLatestVersionDownloads").innerHTML = dData["link_clicks"][0]["clicks"];
+            });
+
+        });
+
+        $("#dlLatestVersion").click(function () {
+            window.open("https://bit.ly/3vIYcCb");
+            document.getElementById("cbpLatestVersionDownloads").innerHTML = parseInt(document.getElementById("cbpLatestVersionDownloads").innerHTML) + 1;
+        });
+    </script>
+  </body>
+</html>
