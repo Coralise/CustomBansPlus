@@ -65,6 +65,10 @@ p.indent {
     margin-top: 20px;
 }
 
+.top-margin-big {
+    margin-top: 60px;
+}
+
 .bold {
     font-weight: bold;
 }
@@ -81,10 +85,17 @@ ul.red-bullets li::before {
     display: inline-block;
 }
 
+.parallax-bg {
+    background-image: url(../img/Parallax_Background.png);
+}
+
 .add-property {
+    height: 100%;
+    width: 100%;
+    position:absolute;
     mix-blend-mode: screen;
 }
 
-.normal-property {
-    mix-blend-mode: normal;
+.smooth-scroll {
+    scroll-behavior: smooth;
 }

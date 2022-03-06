@@ -10,7 +10,7 @@
     </title>
     <link rel="icon" href="img/CBPLogo_Small.png">
   </head>
-  <body class="grey darken-4 sans-serif white-text">
+  <body onscroll="checkFab();" class="grey darken-4 sans-serif white-text">
 
     <div class="navbar-fixed">
       <nav style="height:50px;">
@@ -18,14 +18,14 @@
           <div class="container">
             <a href="index.html"><img src="img/CBPLogo_Small.png" class="brand-logo" style="height: 40px; margin-top: 5px;" /></a>
             <ul id="nav-mobile" class="right" style="margin-top:-7px;">
-              <a id="dl-btn" class="waves-effect waves-light btn-small red darken-4" href="download.html"><i class="material-icons left">file_download</i>Download Now</a>
+              <li class="active"><a href="download.html"><i class="material-icons left">file_download</i>Download Now</a></li>
             </ul>
           </div>
         </div>
       </nav>
     </div>
 
-    <div class="container top-margin">
+    <div id="dlLinks" class="container top-margin smooth-scroll">
         <h4 class="red-text text-darken-4 monospace bold text-shadow">Direct Download Links</h4>
         <table>
             <thead>
@@ -39,7 +39,7 @@
 
             <tbody>
                 <tr>
-                    <td>1.18.2</td>
+                    <td>1.14.0-1.18.2</td>
                     <td id="cbpLatestVersionLabel"></td>
                     <td><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4"><i class="material-icons">file_download</i></a></td>
                     <td id="cbpLatestVersionDownloads"></td>
@@ -48,12 +48,13 @@
         </table>
     </div>
 
-    <div class="container top-margin">
+    <div class="container top-margin-big">
         <h4 class="red-text text-darken-4 monospace bold text-shadow">Update Log</h4>
-        <i class="material-icons left">edit</i><p>Under Construction!</p>
+        <div id="updatesDiv">
+        </div>
     </div>
 
-    <footer class="page-footer grey darken-4 drop-shadow">
+    <footer class="page-footer grey darken-4 drop-shadow top-margin">
       <div class="container">
         <div class="row">
           <div class="col l6 s12">
@@ -94,13 +95,23 @@
       </div>
     </footer>
 
+    <div id="fab" class="fixed-action-btn scale-transition">
+      <a href="#dlLinks" class="btn-floating btn-large red darken-4 waves-effect waves-light smooth-scroll">
+        <i class="large material-icons">keyboard_arrow_up</i>
+      </a>
+    </div>
+
     <!-- <script type="text/javascript" src="data.json"></script> -->
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" src="js/materialize.min.js"></script>
     <script>
         var dData;
         var latestCbpVersion;
-
+        
+        document.addEventListener('DOMContentLoaded', function() {
+          var elems = document.querySelectorAll('.fixed-action-btn');
+          var instances = M.FloatingActionButton.init(elems);
+        });
 
         $(document).ready(function() {
             $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(data) {
@@ -121,12 +132,130 @@
                 document.getElementById("cbpLatestVersionDownloads").innerHTML = dData["link_clicks"][0]["clicks"];
             });
 
+            loadUpdates();
         });
 
         $("#dlLatestVersion").click(function () {
             window.open("https://bit.ly/3vIYcCb");
             document.getElementById("cbpLatestVersionDownloads").innerHTML = parseInt(document.getElementById("cbpLatestVersionDownloads").innerHTML) + 1;
         });
+
+        function loadUpdates() {
+          fetch("https://api.spiget.org/v2/resources/89075/updates?size=5&sort=-date&fields=title%2Cdescription%2Cdate")
+            .then(res => res.json())
+            .then(data => {
+              const updatesDiv = document.getElementById("updatesDiv");
+              for (var i = 0;i < data.length;i++) {
+
+                // <div class="section">
+                //   <div class="card horizontal  grey darken-4 hoverable">
+                //     <div class="card-stacked">
+                //       <div class="card-content">
+                //         <div class="row valign">
+                //           <div class="col s6">
+                //             <span class="card-title red-text text-darken-4 monospace bold text-shadow">Update Title</span>
+                //           </div>
+                //           <div class="col s6 right-align">
+                //             Monday, December 2, 2021 - 10:49
+                //           </div>
+                //         </div>
+                //         <p class="indent">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                //       </div>
+                //     </div>
+                //   </div>
+                // </div>
+                
+                const sec = document.createElement("div");
+                sec.classList.add("section");
+                const cardHor = document.createElement("div");
+                cardHor.classList.add("card");
+                cardHor.classList.add("horizontal");
+                cardHor.classList.add("grey");
+                cardHor.classList.add("darken-4");
+                cardHor.classList.add("hoverable");
+                const cardStacked = document.createElement("div");
+                cardStacked.classList.add("card-stacked");
+                const cardCon = document.createElement("div");
+                cardCon.classList.add("card-content");
+                const row = document.createElement("div");
+                row.classList.add("row");
+                row.classList.add("valign");
+                const col1 = document.createElement("div");
+                col1.classList.add("col");
+                col1.classList.add("s6");
+                const col2 = document.createElement("div");
+                col2.classList.add("col");
+                col2.classList.add("s6");
+                col2.classList.add("right-align");
+                const span = document.createElement("span");
+                span.classList.add("card-title");
+                span.classList.add("red-text");
+                span.classList.add("text-darken-4");
+                span.classList.add("monospace");
+                span.classList.add("bold");
+                span.classList.add("text-shadow");
+                const p = document.createElement("p");
+
+                span.innerHTML = data[i]["title"];
+                p.innerHTML = b64_to_utf8(data[i]["description"]);
+                col2.innerHTML = getDate(Number(data[i]["date"]));
+
+                col1.appendChild(span);
+                row.appendChild(col1);
+                row.appendChild(col2);
+                cardCon.appendChild(row);
+                cardCon.appendChild(p);
+                cardStacked.appendChild(cardCon);
+                cardHor.append(cardStacked);
+                sec.appendChild(cardHor);
+                updatesDiv.appendChild(sec);
+
+              }
+            });
+        }
+
+        function b64_to_utf8( str ) {
+          return decodeURIComponent(escape(window.atob( str )));
+        }
+
+        function getDate(unix) {
+          const milliseconds = unix * 1000;
+
+          const dateObject = new Date(milliseconds);
+
+          const humanDateFormat = dateObject.toLocaleString(); //2019-12-9 10:30:15
+
+          var wDay = dateObject.toLocaleString("en-US", {weekday: "long"}); // Monday
+          var month = dateObject.toLocaleString("en-US", {month: "long"}); // December
+          var day = dateObject.toLocaleString("en-US", {day: "numeric"}); // 9
+          var year = dateObject.toLocaleString("en-US", {year: "numeric"}); // 2019
+          var hour = dateObject.toLocaleString("en-US", {hour: "numeric"}); // 10 AM
+          var minute = dateObject.toLocaleString("en-US", {minute: "numeric"}); // 30
+          var second = dateObject.toLocaleString("en-US", {second: "numeric"}); // 15
+
+          var time = hour.slice(0, hour.indexOf(" ")) + ":" +  minute + hour.slice(hour.indexOf(" "));
+
+          return wDay + ", " + month + " " + day + ", " + year + " - " + time;
+        }
+    
+        function checkFab() {
+          var instance = M.FloatingActionButton.getInstance(document.getElementById("fab"));
+          if (isInViewport(document.getElementById("dlLinks"))) {
+            document.getElementById("fab").classList.add("scale-out");
+          } else {
+            document.getElementById("fab").classList.remove("scale-out");
+          }
+        }
+
+        function isInViewport(element) {
+        const rect = element.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+}
     </script>
   </body>
 </html>

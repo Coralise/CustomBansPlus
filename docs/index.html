@@ -18,19 +18,20 @@
           <div class="container">
             <a href="index.html"><img src="img/CBPLogo_Small.png" class="brand-logo" style="height: 40px; margin-top: 5px;" /></a>
             <ul id="nav-mobile" class="right" style="margin-top:-7px;">
-              <a id="dl-btn" class="waves-effect waves-light btn-small red darken-4" href="download.html"><i class="material-icons left">file_download</i>Download Now</a>
+              <li><a href="download.html"><i class="material-icons left">file_download</i>Download Now</a></li>
             </ul>
           </div>
         </div>
       </nav>
     </div>
 
-    <div id="title-parallax" class="parallax-container grey darken-4 transition-medium">
+    <div id="title-parallax" class="parallax-container grey darken-4 transition-medium" style="height:560px;">
       <div class="container valign height-100">
+        <div id="particles-js" style="height:100%;width:100%;position:absolute;"></div>
         <h3 id="title-text" class="grey-text text-lighten-3 text-shadow monospace center"></h3>
       </div>
       <div class="parallax">
-        <!-- <img src="img/particles.gif" class="add-property" /> -->
+        <!-- <img src="img/particles.gif" /> -->
         <img src="img/Parallax_Background.png" class="normal-property" />
       </div>
     </div>
@@ -186,6 +187,7 @@
     </footer>
 
     <!-- <script type="text/javascript" src="data.json"></script> -->
+    <script type="text/javascript" src="particles.js-master/particles.min.js"></script>
     <script type="text/javascript" src="js/materialize.min.js"></script>
     <script>
       var data;
@@ -202,20 +204,29 @@
           document.getElementById("title-parallax").classList.remove("grey");
           document.getElementById("title-parallax").classList.remove("darken-4");
           document.getElementById("title-parallax").classList.add("vignette");
+          // document.getElementById("title-parallax").classList.add("add-property");
         }, 1000);
 
         setTimeout(function() {
-          var text = "Custom Bans Plus 🔨";
-          for (var i = 0;i < text.length+1;i++) {
-            doSetTimeout(i, text);
+          var text = "Custom Bans Plus";
+          for (var i = 0,j = 0;i < text.length+1;i++) {
+            if (text.charAt(i-1) == " ") {
+              i++;
+              j++;
+            }
+            doSetTimeout(i, j, text);
           }
         }, 1500);
+
+        particlesJS.load('particles-js', 'particles.js-master/particlesjs-config.json', function() {
+          console.log('callback - particles.js config loaded');
+        });
       });
       
-      function doSetTimeout(i, text) {
+      function doSetTimeout(i, j, text) {
         setTimeout(function() {
           document.getElementById("title-text").innerHTML = text.substring(0, i);
-        }, 100 * (i+1));
+        }, 100 * (i+1-j));
       }
     </script>
   </body>
