@@ -33,16 +33,29 @@
                     <th class="red-text text-darken-4 monospace bold text-shadow">MC Version</th>
                     <th class="red-text text-darken-4 monospace bold text-shadow">CBP Version</th>
                     <th class="red-text text-darken-4 monospace bold text-shadow">Download Link</th>
-                    <th class="red-text text-darken-4 monospace bold text-shadow">Downloads</th>
                 </tr>
             </thead>
 
             <tbody>
                 <tr>
-                    <td>1.14.0-1.18.2</td>
+                    <td>1.14.0 - 1.18.2</td>
                     <td id="cbpLatestVersionLabel"></td>
-                    <td><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4"><i class="material-icons">file_download</i></a></td>
-                    <td id="cbpLatestVersionDownloads"></td>
+                    <td><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4"><i class="material-icons left">file_download</i></a></td>
+                </tr>
+                <tr>
+                    <td>Legacy (1.8.0 - 1.13.1)</td>
+                    <td id="cbpLegacyLabel"></td>
+                    <td><a id="dlLegacy" class="btn-small waves-effect waves-light red darken-4"><i class="material-icons left">file_download</i></a></td>
+                </tr>
+                <tr>
+                    <td>Bungeecord</td>
+                    <td id="cbpBungeeLabel"></td>
+                    <td><a id="dlBungee" class="btn-small waves-effect waves-light red darken-4 disabled"><i class="material-icons left">file_download</i>Coming soon!</a></td>
+                </tr>
+                <tr>
+                    <td>Latest Snapshot (Potentially unstable)</td>
+                    <td id="cbpSnapshotLabel"></td>
+                    <td><a id="dlSnapshot" class="btn-small waves-effect waves-light red darken-4 disabled"><i class="material-icons">file_download</i></a></td>
                 </tr>
             </tbody>
         </table>
@@ -115,7 +128,9 @@
     <script type="text/javascript" src="js/materialize.min.js"></script>
     <script>
         var dData;
+        var dData188;
         var latestCbpVersion;
+        // 
         
         document.addEventListener('DOMContentLoaded', function() {
           var elems = document.querySelectorAll('.fixed-action-btn');
@@ -126,6 +141,7 @@
             $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(data) {
                 latestCbpVersion = data["name"];
                 document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
+                document.getElementById("cbpLegacyLabel").innerHTML = latestCbpVersion;
             });
 
             fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
@@ -137,8 +153,20 @@
               res.json())
             .then(d => {
                 dData = d;
-                console.log(dData);
-                document.getElementById("cbpLatestVersionDownloads").innerHTML = dData["link_clicks"][0]["clicks"];
+                document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
+            });
+
+            fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/35DSOp1/clicks?unit=month&units=-1', {
+                headers: {  
+                    'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
+                }
+            })
+            .then(res =>
+              res.json())
+            .then(d => {
+                dData188 = d;
+                console.log(dData188);
+                document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
             });
 
             loadPluginDetails();
@@ -147,7 +175,14 @@
 
         $("#dlLatestVersion").click(function () {
             window.open("https://bit.ly/3vIYcCb");
-            document.getElementById("cbpLatestVersionDownloads").innerHTML = parseInt(document.getElementById("cbpLatestVersionDownloads").innerHTML) + 1;
+            dData["link_clicks"][0]["clicks"] = parseInt(dData["link_clicks"][0]["clicks"]) + 1;
+            document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
+        });
+
+        $("#dlLegacy").click(function () {
+            window.open("https://bit.ly/35DSOp1");
+            dData188["link_clicks"][0]["clicks"] = parseInt(dData188["link_clicks"][0]["clicks"]) + 1;
+            document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
         });
 
         $("#upPage").click(function() {
