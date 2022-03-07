@@ -235,7 +235,7 @@
           var minute = dateObject.toLocaleString("en-US", {minute: "numeric"}); // 30
           var second = dateObject.toLocaleString("en-US", {second: "numeric"}); // 15
 
-          var time = hour.slice(0, hour.indexOf(" ")) + ":" +  minute + hour.slice(hour.indexOf(" "));
+          var time = (hour.slice(0, hour.indexOf(" ")).length == 1 ? "0" : "") + hour.slice(0, hour.indexOf(" ")) + ":" + (minute.toString().length == 1 ? "0" : "") +  minute + hour.slice(hour.indexOf(" "));
 
           return wDay + ", " + month + " " + day + ", " + year + " - " + time;
         }
