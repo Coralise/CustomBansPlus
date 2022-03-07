@@ -99,3 +99,20 @@ ul.red-bullets li::before {
 .smooth-scroll {
     scroll-behavior: smooth;
 }
+
+input.page {
+    outline: 0px;
+    border: 0px;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input.page::-webkit-outer-spin-button,
+input.page::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input.page[type=number] {
+  -moz-appearance: textfield;
+}

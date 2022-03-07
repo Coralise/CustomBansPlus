@@ -49,7 +49,16 @@
     </div>
 
     <div class="container top-margin-big">
-        <h4 class="red-text text-darken-4 monospace bold text-shadow">Update Log</h4>
+        <div class="row valign">
+          <div class="col s6">
+            <h4 class="red-text text-darken-4 monospace bold text-shadow">Update Log</h4>
+          </div>
+          <div class="col s6 right-align">
+            <span id="downPage" class="btn-small waves-effect waves-light red darken-4 disabled"><i class="material-icons">keyboard_arrow_left</i></span>
+            <input id="pageNum" type="number" class="browser-default center page grey darken-4 white-text" style="width:40px;" value="1" disabled>
+            <span id="upPage" class="btn-small waves-effect waves-light red darken-4"><i class="material-icons">keyboard_arrow_right</i></span>
+          </div>
+        </div>
         <div id="updatesDiv">
         </div>
     </div>
@@ -132,7 +141,8 @@
                 document.getElementById("cbpLatestVersionDownloads").innerHTML = dData["link_clicks"][0]["clicks"];
             });
 
-            loadUpdates();
+            loadPluginDetails();
+            loadUpdates(1);
         });
 
         $("#dlLatestVersion").click(function () {
@@ -140,11 +150,33 @@
             document.getElementById("cbpLatestVersionDownloads").innerHTML = parseInt(document.getElementById("cbpLatestVersionDownloads").innerHTML) + 1;
         });
 
-        function loadUpdates() {
-          fetch("https://api.spiget.org/v2/resources/89075/updates?size=5&sort=-date&fields=title%2Cdescription%2Cdate")
+        $("#upPage").click(function() {
+          $("#pageNum").val(parseInt($("#pageNum").val()) + 1);
+          loadUpdates($("#pageNum").val());
+          $("#downPage").removeClass("disabled");
+        });
+
+        $("#downPage").click(function() {
+          $("#pageNum").val(parseInt($("#pageNum").val()) - 1);
+          loadUpdates($("#pageNum").val());
+          if ($("#pageNum").val() == 1) $("#downPage").addClass("disabled");
+        });
+
+        function loadPluginDetails() {
+          fetch("https://api.spiget.org/v2/resources/89075")
+            .then(res => res.json())
+            .then(data => {
+              console.log(data);
+            });
+        }
+
+        function loadUpdates(page) {
+          $("#upPage").addClass("disabled");
+          fetch("https://api.spiget.org/v2/resources/89075/updates?size=5&page="+ page +"&sort=-date&fields=title%2Cdescription%2Cdate")
             .then(res => res.json())
             .then(data => {
               const updatesDiv = document.getElementById("updatesDiv");
+              updatesDiv.innerHTML = "";
               for (var i = 0;i < data.length;i++) {
 
                 // <div class="section">
@@ -211,6 +243,8 @@
                 cardHor.append(cardStacked);
                 sec.appendChild(cardHor);
                 updatesDiv.appendChild(sec);
+                
+                if (updatesDiv.childNodes.length == 5) $("#upPage").removeClass("disabled");
 
               }
             });
