@@ -146,6 +146,7 @@
                 latestCbpVersion = data["name"];
                 document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
                 document.getElementById("cbpLegacyLabel").innerHTML = "3.3.19.4";
+                document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + data["downloads"];
             });
 
             fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
@@ -157,7 +158,7 @@
               res.json())
             .then(d => {
                 dData = d;
-                document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
+                // document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
             });
 
             fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/35DSOp1/clicks?unit=month&units=-1', {
