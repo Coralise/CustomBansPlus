@@ -134,6 +134,7 @@
         var dData;
         var dData188;
         var latestCbpVersion;
+        var data;
         // 
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -142,11 +143,12 @@
         });
 
         $(document).ready(function() {
-            $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(data) {
-                latestCbpVersion = data["name"];
+            $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(d) {
+                data = d;
+                latestCbpVersion = d["name"];
                 document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
                 document.getElementById("cbpLegacyLabel").innerHTML = "3.3.19.4";
-                document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + data["downloads"];
+                document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + d["downloads"];
             });
 
             fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
@@ -180,8 +182,7 @@
 
         $("#dlLatestVersion").click(function () {
             window.open("https://bit.ly/3vIYcCb");
-            dData["link_clicks"][0]["clicks"] = parseInt(dData["link_clicks"][0]["clicks"]) + 1;
-            document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
+            document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + (parseInt(data["downloads"]) + 1);
         });
 
         $("#dlLegacy").click(function () {
