@@ -145,7 +145,7 @@
             $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(data) {
                 latestCbpVersion = data["name"];
                 document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
-                document.getElementById("cbpLegacyLabel").innerHTML = latestCbpVersion;
+                document.getElementById("cbpLegacyLabel").innerHTML = "3.3.19.4";
             });
 
             fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
