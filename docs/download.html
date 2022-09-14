@@ -39,7 +39,7 @@
 
             <tbody>
                 <tr>
-                    <td>Latest (1.14.0 - 1.19)</td>
+                    <td>Latest (1.14.0 - 1.19.2)</td>
                     <td class="center" id="cbpLatestVersionLabel"></td>
                     <td class="center"><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
                 </tr>
@@ -54,9 +54,9 @@
                     <td class="center"><a id="dlBungee" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons left">file_download</i>0</a></td>
                 </tr>
                 <tr>
-                    <td>Snapshot (Unstable)</td>
-                    <td class="center" id="cbpSnapshotLabel"></td>
-                    <td class="center"><a id="dlSnapshot" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons left">file_download</i>0</a></td>
+                    <td>Snapshot (Latest Updates, Potentially Unstable)</td>
+                    <td class="center" id="cbpSnapshotLabel">v3.4-SNAPSHOT1a</td>
+                    <td class="center"><a id="dlSnapshot" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons">file_download</i></a></td>
                 </tr>
             </tbody>
         </table>
@@ -190,6 +190,12 @@
             dData188["link_clicks"][0]["clicks"] = parseInt(dData188["link_clicks"][0]["clicks"]) + 1;
             document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
         });
+
+        $("#dlSnapshot").click(function () {
+            window.open("https://bit.ly/3diJoTI");
+        });
+
+        // 
 
         $("#upPage").click(function() {
           $("#pageNum").val(parseInt($("#pageNum").val()) + 1);
