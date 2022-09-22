@@ -10,335 +10,338 @@
     </title>
     <link rel="icon" href="img/CBPLogo_Small.png">
   </head>
-  <body onscroll="checkFab();" class="grey darken-4 sans-serif white-text">
+  <body onscroll="checkFab();" class="sans-serif white-text">
 
-    <div class="navbar-fixed">
-      <nav style="height:50px;">
-        <div class="nav-wrapper grey darken-4 drop-shadow">
-          <div class="container">
-            <a href="index.html"><img src="img/CBPLogo_Small.png" class="brand-logo" style="height: 40px; margin-top: 5px;" /></a>
-            <ul id="nav-mobile" class="right" style="margin-top:-7px;">
-              <li><a href="https://github.com/Coralise/CustomBansPlus/wiki"><i class="material-icons left red-text text-accent-4">book</i>Wiki</a></li>
-              <li class="active"><a href="download.html"><i class="material-icons left red-text text-accent-4">file_download</i>Download Now</a></li>
-            </ul>
+    <div>
+      <div class="navbar-fixed">
+        <nav style="height:50px;">
+          <div class="nav-wrapper grey darken-4 drop-shadow">
+            <div class="container">
+              <a href="index.html"><img src="img/CBPLogo_Small.png" class="brand-logo" style="height: 40px; margin-top: 5px;" /></a>
+              <ul id="nav-mobile" class="right" style="margin-top:-7px;">
+                <li><a href="https://github.com/Coralise/CustomBansPlus/wiki"><i class="material-icons left red-text text-accent-4">book</i>Wiki</a></li>
+                <li class="active"><a href="download.html"><i class="material-icons left red-text text-accent-4">file_download</i>Download Now</a></li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </nav>
-    </div>
-
-    <div id="dlLinks" class="container top-margin smooth-scroll">
-        <h4 class="red-text text-accent-4 monospace bold text-shadow">Direct Download Links</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th class="red-text text-accent-4 monospace bold text-shadow" style="width:33%;">MC Version</th>
-                    <th class="red-text text-accent-4 monospace bold text-shadow center" style="width:33%;">CBP Version</th>
-                    <th class="red-text text-accent-4 monospace bold text-shadow center" style="width:33%;">Download Link</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr>
-                    <td>Latest (1.14.0 - 1.19.2)</td>
-                    <td class="center" id="cbpLatestVersionLabel"></td>
-                    <td class="center"><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
-                </tr>
-                <tr>
-                    <td>Legacy (1.8.0 - 1.13.1)</td>
-                    <td class="center" id="cbpLegacyLabel"></td>
-                    <td class="center"><a id="dlLegacy" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
-                </tr>
-                <tr>
-                    <td>Bungeecord</td>
-                    <td class="center" id="cbpBungeeLabel">Coming soon!</td>
-                    <td class="center"><a id="dlBungee" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons left">file_download</i>0</a></td>
-                </tr>
-                <tr>
-                    <td>Snapshot (Latest Updates, Potentially Unstable)</td>
-                    <td class="center" id="cbpSnapshotLabel">v3.4-SNAPSHOT1a</td>
-                    <td class="center"><a id="dlSnapshot" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons">file_download</i></a></td>
-                </tr>
-            </tbody>
-        </table>
-        <div class="top-margin">
-          <i style="color:grey">Note: CBP Version detection is not real time. In the first few moments of an update, it will still display the previous version, but is in fact already updated.</i>
-        </div>
-    </div>
-
-    <div class="container top-margin-big">
-        <div class="row valign">
-          <div class="col s6">
-            <h4 class="red-text text-accent-4 monospace bold text-shadow">Update Log</h4>
-          </div>
-          <div class="col s6 right-align">
-            <span id="downPage" class="btn-small waves-effect waves-light red darken-4 disabled round-corners-low"><i class="material-icons">keyboard_arrow_left</i></span>
-            <input id="pageNum" type="number" class="browser-default center page grey darken-4 white-text" style="width:40px;" value="1" disabled>
-            <span id="upPage" class="btn-small waves-effect waves-light red darken-4 round-corners-low"><i class="material-icons">keyboard_arrow_right</i></span>
-          </div>
-        </div>
-        <div id="updatesDiv">
-        </div>
-    </div>
-
-    <footer class="page-footer grey darken-4 drop-shadow top-margin">
-      <div class="container">
-        <div class="row">
-          <div class="col l6 s12">
-            <h5 class="red-text text-accent-4 monospace bold text-shadow">Support our Developers! 💕</h5>
-            <p class="grey-text text-lighten-4">If you like our plugins, feel free to leave a coffee for one of us! It'll surely make our day happier.</p>
-            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support us with a coffee!', '#29abe0', 'A0A838CB2');kofiwidget2.draw();</script> 
-            <div id="donate-button-container" class="top-margin">
-              <div id="donate-button"></div>
-              <script src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js" charset="UTF-8"></script>
-              <script>
-              PayPal.Donation.Button({
-              env:'production',
-              hosted_button_id:'Y9FZLHQ4GBCJG',
-              image: {
-              src:'https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif',
-              alt:'Donate with PayPal button',
-              title:'PayPal - The safer, easier way to pay online!',
-              }
-              }).render('#donate-button');
-              </script>
-              </div>
-          </div>
-          <div class="col l4 offset-l2 s12">
-            <h5 class="red-text text-accent-4 monospace bold text-shadow">Links</h5>
-            <ul>
-              <li><a class="blue-text text-darken-3" href="https://discord.io/CoralReef" target=”_blank”>Discord</a></li>
-              <li><a class="deep-purple-text text-darken-1" href="https://github.com/Coralise/CustomBansPlus/wiki" target=”_blank”>Github Wiki</a></li>
-              <li><a class="orange-text text-darken-3" href="https://www.spigotmc.org/resources/custom-bans-plus-fully-customizable-ban-manager.89075/" target=”_blank”>SpigotMC</a></li>
-              <li><a class="orange-text text-darken-4" href="https://dev.bukkit.org/projects/custom-bans-plus-fully-customizable-ban-manager" target=”_blank”>Curseforge</a></li>
-            </ul>
-          </div>
-        </div>
+        </nav>
       </div>
-      <div class="footer-copyright">
+  
+      <div id="dlLinks" class="container top-margin smooth-scroll">
+          <h4 class="red-text text-accent-4 monospace bold text-shadow">Direct Download Links</h4>
+          <table>
+              <thead>
+                  <tr>
+                      <th class="red-text text-accent-4 monospace bold text-shadow" style="width:33%;">MC Version</th>
+                      <th class="red-text text-accent-4 monospace bold text-shadow center" style="width:33%;">CBP Version</th>
+                      <th class="red-text text-accent-4 monospace bold text-shadow center" style="width:33%;">Download Link</th>
+                  </tr>
+              </thead>
+  
+              <tbody>
+                  <tr>
+                      <td>Latest (1.14.0 - 1.19.2)</td>
+                      <td class="center" id="cbpLatestVersionLabel"></td>
+                      <td class="center"><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
+                  </tr>
+                  <tr>
+                      <td>Legacy (1.8.0 - 1.13.1)</td>
+                      <td class="center" id="cbpLegacyLabel"></td>
+                      <td class="center"><a id="dlLegacy" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
+                  </tr>
+                  <tr>
+                      <td>Bungeecord</td>
+                      <td class="center" id="cbpBungeeLabel">Coming soon!</td>
+                      <td class="center"><a id="dlBungee" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons left">file_download</i>0</a></td>
+                  </tr>
+                  <tr>
+                      <td>Snapshot (Latest Updates, Potentially Unstable)</td>
+                      <td class="center" id="cbpSnapshotLabel">Unavailable</td>
+                      <td class="center"><a id="dlSnapshot" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons">file_download</i></a></td>
+                  </tr>
+              </tbody>
+          </table>
+          <div class="top-margin">
+            <i style="color:grey">Note: CBP Version detection is not real time. In the first few moments of an update, it will still display the previous version, but is in fact already updated.</i>
+          </div>
+      </div>
+  
+      <div class="container top-margin-big">
+          <div class="row valign">
+            <div class="col s6">
+              <h4 class="red-text text-accent-4 monospace bold text-shadow">Update Log</h4>
+            </div>
+            <div class="col s6 right-align">
+              <span id="downPage" class="btn-small waves-effect waves-light red darken-4 disabled round-corners-low"><i class="material-icons">keyboard_arrow_left</i></span>
+              <input id="pageNum" type="number" class="browser-default center page grey darken-4 white-text" style="width:40px;" value="1" disabled>
+              <span id="upPage" class="btn-small waves-effect waves-light red darken-4 round-corners-low"><i class="material-icons">keyboard_arrow_right</i></span>
+            </div>
+          </div>
+          <div id="updatesDiv">
+          </div>
+      </div>
+  
+      <footer class="page-footer grey darken-4 drop-shadow top-margin">
         <div class="container">
-        © 2022 WG Studios, Coralise, and the Coral Reef Network.
+          <div class="row">
+            <div class="col l6 s12">
+              <h5 class="red-text text-accent-4 monospace bold text-shadow">Support our Developers! 💕</h5>
+              <p class="grey-text text-lighten-4">If you like our plugins, feel free to leave a coffee for one of us! It'll surely make our day happier.</p>
+              <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support us with a coffee!', '#29abe0', 'A0A838CB2');kofiwidget2.draw();</script> 
+              <div id="donate-button-container" class="top-margin">
+                <div id="donate-button"></div>
+                <script src="https://www.paypalobjects.com/donate/sdk/donate-sdk.js" charset="UTF-8"></script>
+                <script>
+                PayPal.Donation.Button({
+                env:'production',
+                hosted_button_id:'Y9FZLHQ4GBCJG',
+                image: {
+                src:'https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif',
+                alt:'Donate with PayPal button',
+                title:'PayPal - The safer, easier way to pay online!',
+                }
+                }).render('#donate-button');
+                </script>
+                </div>
+            </div>
+            <div class="col l4 offset-l2 s12">
+              <h5 class="red-text text-accent-4 monospace bold text-shadow">Links</h5>
+              <ul>
+                <li><a class="blue-text text-darken-3" href="https://discord.io/CoralReef" target=”_blank”>Discord</a></li>
+                <li><a class="deep-purple-text text-darken-1" href="https://github.com/Coralise/CustomBansPlus/wiki" target=”_blank”>Github Wiki</a></li>
+                <li><a class="orange-text text-darken-3" href="https://www.spigotmc.org/resources/custom-bans-plus-fully-customizable-ban-manager.89075/" target=”_blank”>SpigotMC</a></li>
+                <li><a class="orange-text text-darken-4" href="https://dev.bukkit.org/projects/custom-bans-plus-fully-customizable-ban-manager" target=”_blank”>Curseforge</a></li>
+              </ul>
+            </div>
+          </div>
         </div>
+        <div class="footer-copyright">
+          <div class="container">
+          © 2022 WG Studios, Coralise, and the Coral Reef Network.
+          </div>
+        </div>
+      </footer>
+  
+      <div id="fab" class="fixed-action-btn scale-transition">
+        <a href="#dlLinks" class="btn-floating btn-large red darken-4 waves-effect waves-light smooth-scroll">
+          <i class="large material-icons">keyboard_arrow_up</i>
+        </a>
       </div>
-    </footer>
-
-    <div id="fab" class="fixed-action-btn scale-transition">
-      <a href="#dlLinks" class="btn-floating btn-large red darken-4 waves-effect waves-light smooth-scroll">
-        <i class="large material-icons">keyboard_arrow_up</i>
-      </a>
+  
+      <!-- <script type="text/javascript" src="data.json"></script> -->
+      <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+      <script type="text/javascript" src="js/materialize.min.js"></script>
+      <script>
+          var dData;
+          var dData188;
+          var latestCbpVersion;
+          var data;
+          // 
+          
+          document.addEventListener('DOMContentLoaded', function() {
+            var elems = document.querySelectorAll('.fixed-action-btn');
+            var instances = M.FloatingActionButton.init(elems);
+          });
+  
+          $(document).ready(function() {
+              $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(d) {
+                  data = d;
+                  latestCbpVersion = d["name"];
+                  document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
+                  document.getElementById("cbpLegacyLabel").innerHTML = "3.3.19.4";
+                  document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + d["downloads"];
+              });
+  
+              fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
+                  headers: {  
+                      'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
+                  }
+              })
+              .then(res =>
+                res.json())
+              .then(d => {
+                  dData = d;
+                  // document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
+              });
+  
+              fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/35DSOp1/clicks?unit=month&units=-1', {
+                  headers: {  
+                      'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
+                  }
+              })
+              .then(res =>
+                res.json())
+              .then(d => {
+                  dData188 = d;
+                  console.log(dData188);
+                  document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
+              });
+  
+              loadPluginDetails();
+              loadUpdates(1);
+          });
+  
+          $("#dlLatestVersion").click(function () {
+              window.open("https://bit.ly/custombanspluslatest");
+              document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + (parseInt(data["downloads"]) + 1);
+          });
+  
+          $("#dlLegacy").click(function () {
+              window.open("https://bit.ly/35DSOp1");
+              dData188["link_clicks"][0]["clicks"] = parseInt(dData188["link_clicks"][0]["clicks"]) + 1;
+              document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
+          });
+  
+          $("#dlSnapshot").click(function () {
+              // window.open("https://bit.ly/3diJoTI");
+          });
+  
+          // 
+  
+          $("#upPage").click(function() {
+            $("#pageNum").val(parseInt($("#pageNum").val()) + 1);
+            loadUpdates($("#pageNum").val());
+            $("#downPage").removeClass("disabled");
+          });
+  
+          $("#downPage").click(function() {
+            $("#pageNum").val(parseInt($("#pageNum").val()) - 1);
+            loadUpdates($("#pageNum").val());
+            if ($("#pageNum").val() == 1) $("#downPage").addClass("disabled");
+          });
+  
+          function loadPluginDetails() {
+            fetch("https://api.spiget.org/v2/resources/89075")
+              .then(res => res.json())
+              .then(data => {
+                console.log(data);
+              });
+          }
+  
+          function loadUpdates(page) {
+            $("#upPage").addClass("disabled");
+            fetch("https://api.spiget.org/v2/resources/89075/updates?size=5&page="+ page +"&sort=-date&fields=title%2Cdescription%2Cdate")
+              .then(res => res.json())
+              .then(data => {
+                const updatesDiv = document.getElementById("updatesDiv");
+                updatesDiv.innerHTML = "";
+                for (var i = 0;i < data.length;i++) {
+  
+                  // <div class="section">
+                  //   <div class="card horizontal  grey darken-4 hoverable">
+                  //     <div class="card-stacked">
+                  //       <div class="card-content">
+                  //         <div class="row valign">
+                  //           <div class="col s8 m12">
+                  //             <span class="card-title red-text text-accent-4 monospace bold text-shadow">Update Title</span>
+                  //           </div>
+                  //           <div class="col s4 m12 right-align">
+                  //             Monday, December 2, 2021 - 10:49
+                  //           </div>
+                  //         </div>
+                  //         <p class="indent">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                  //       </div>
+                  //     </div>
+                  //   </div>
+                  // </div>
+                  
+                  const sec = document.createElement("div");
+                  sec.classList.add("section");
+                  const cardHor = document.createElement("div");
+                  cardHor.classList.add("card");
+                  cardHor.classList.add("horizontal");
+                  cardHor.classList.add("grey");
+                  cardHor.classList.add("darken-4");
+                  cardHor.classList.add("hoverable");
+                  const cardStacked = document.createElement("div");
+                  cardStacked.classList.add("card-stacked");
+                  const cardCon = document.createElement("div");
+                  cardCon.classList.add("card-content");
+                  const row = document.createElement("div");
+                  row.classList.add("row");
+                  row.classList.add("valign");
+                  const col1 = document.createElement("div");
+                  col1.classList.add("col");
+                  col1.classList.add("l8");
+                  col1.classList.add("s12");
+                  const col2 = document.createElement("div");
+                  col2.classList.add("col");
+                  col2.classList.add("l4");
+                  col2.classList.add("s12");
+                  col2.classList.add("right-align");
+                  const span = document.createElement("span");
+                  span.classList.add("card-title");
+                  span.classList.add("red-text");
+                  span.classList.add("text-accent-4");
+                  span.classList.add("monospace");
+                  span.classList.add("bold");
+                  span.classList.add("text-shadow");
+                  const p = document.createElement("p");
+  
+                  span.innerHTML = data[i]["title"];
+                  p.innerHTML = b64_to_utf8(data[i]["description"]);
+                  col2.innerHTML = getDate(Number(data[i]["date"]));
+  
+                  col1.appendChild(span);
+                  row.appendChild(col1);
+                  row.appendChild(col2);
+                  cardCon.appendChild(row);
+                  cardCon.appendChild(p);
+                  cardStacked.appendChild(cardCon);
+                  cardHor.append(cardStacked);
+                  sec.appendChild(cardHor);
+                  updatesDiv.appendChild(sec);
+                  
+                  if (updatesDiv.childNodes.length == 5) $("#upPage").removeClass("disabled");
+  
+                }
+              });
+          }
+  
+          function b64_to_utf8( str ) {
+            return decodeURIComponent(escape(window.atob( str )));
+          }
+  
+          function getDate(unix) {
+            const milliseconds = unix * 1000;
+  
+            const dateObject = new Date(milliseconds);
+  
+            const humanDateFormat = dateObject.toLocaleString(); //2019-12-9 10:30:15
+  
+            var wDay = dateObject.toLocaleString("en-US", {weekday: "long"}); // Monday
+            var month = dateObject.toLocaleString("en-US", {month: "long"}); // December
+            var day = dateObject.toLocaleString("en-US", {day: "numeric"}); // 9
+            var year = dateObject.toLocaleString("en-US", {year: "numeric"}); // 2019
+            var hour = dateObject.toLocaleString("en-US", {hour: "numeric"}); // 10 AM
+            var minute = dateObject.toLocaleString("en-US", {minute: "numeric"}); // 30
+            var second = dateObject.toLocaleString("en-US", {second: "numeric"}); // 15
+  
+            var time = (hour.slice(0, hour.indexOf(" ")).length == 1 ? "0" : "") + hour.slice(0, hour.indexOf(" ")) + ":" + (minute.toString().length == 1 ? "0" : "") +  minute + hour.slice(hour.indexOf(" "));
+  
+            return wDay + ", " + month + " " + day + ", " + year + " - " + time;
+          }
+      
+          function checkFab() {
+            var instance = M.FloatingActionButton.getInstance(document.getElementById("fab"));
+            if (isInViewport(document.getElementById("dlLinks"))) {
+              document.getElementById("fab").classList.add("scale-out");
+            } else {
+              document.getElementById("fab").classList.remove("scale-out");
+            }
+          }
+  
+          function isInViewport(element) {
+          const rect = element.getBoundingClientRect();
+          return (
+              rect.top >= 0 &&
+              rect.left >= 0 &&
+              rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+              rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+          );
+  }
+      </script>
     </div>
 
-    <!-- <script type="text/javascript" src="data.json"></script> -->
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script type="text/javascript" src="js/materialize.min.js"></script>
-    <script>
-        var dData;
-        var dData188;
-        var latestCbpVersion;
-        var data;
-        // 
-        
-        document.addEventListener('DOMContentLoaded', function() {
-          var elems = document.querySelectorAll('.fixed-action-btn');
-          var instances = M.FloatingActionButton.init(elems);
-        });
-
-        $(document).ready(function() {
-            $.getJSON('https://api.spiget.org/v2/resources/89075/versions/latest', function(d) {
-                data = d;
-                latestCbpVersion = d["name"];
-                document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
-                document.getElementById("cbpLegacyLabel").innerHTML = "3.3.19.4";
-                document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + d["downloads"];
-            });
-
-            fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
-                headers: {  
-                    'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
-                }
-            })
-            .then(res =>
-              res.json())
-            .then(d => {
-                dData = d;
-                // document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
-            });
-
-            fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/35DSOp1/clicks?unit=month&units=-1', {
-                headers: {  
-                    'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
-                }
-            })
-            .then(res =>
-              res.json())
-            .then(d => {
-                dData188 = d;
-                console.log(dData188);
-                document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
-            });
-
-            loadPluginDetails();
-            loadUpdates(1);
-        });
-
-        $("#dlLatestVersion").click(function () {
-            window.open("https://bit.ly/3vIYcCb");
-            document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + (parseInt(data["downloads"]) + 1);
-        });
-
-        $("#dlLegacy").click(function () {
-            window.open("https://bit.ly/35DSOp1");
-            dData188["link_clicks"][0]["clicks"] = parseInt(dData188["link_clicks"][0]["clicks"]) + 1;
-            document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
-        });
-
-        $("#dlSnapshot").click(function () {
-            window.open("https://bit.ly/3diJoTI");
-        });
-
-        // 
-
-        $("#upPage").click(function() {
-          $("#pageNum").val(parseInt($("#pageNum").val()) + 1);
-          loadUpdates($("#pageNum").val());
-          $("#downPage").removeClass("disabled");
-        });
-
-        $("#downPage").click(function() {
-          $("#pageNum").val(parseInt($("#pageNum").val()) - 1);
-          loadUpdates($("#pageNum").val());
-          if ($("#pageNum").val() == 1) $("#downPage").addClass("disabled");
-        });
-
-        function loadPluginDetails() {
-          fetch("https://api.spiget.org/v2/resources/89075")
-            .then(res => res.json())
-            .then(data => {
-              console.log(data);
-            });
-        }
-
-        function loadUpdates(page) {
-          $("#upPage").addClass("disabled");
-          fetch("https://api.spiget.org/v2/resources/89075/updates?size=5&page="+ page +"&sort=-date&fields=title%2Cdescription%2Cdate")
-            .then(res => res.json())
-            .then(data => {
-              const updatesDiv = document.getElementById("updatesDiv");
-              updatesDiv.innerHTML = "";
-              for (var i = 0;i < data.length;i++) {
-
-                // <div class="section">
-                //   <div class="card horizontal  grey darken-4 hoverable">
-                //     <div class="card-stacked">
-                //       <div class="card-content">
-                //         <div class="row valign">
-                //           <div class="col s8 m12">
-                //             <span class="card-title red-text text-accent-4 monospace bold text-shadow">Update Title</span>
-                //           </div>
-                //           <div class="col s4 m12 right-align">
-                //             Monday, December 2, 2021 - 10:49
-                //           </div>
-                //         </div>
-                //         <p class="indent">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                //       </div>
-                //     </div>
-                //   </div>
-                // </div>
-                
-                const sec = document.createElement("div");
-                sec.classList.add("section");
-                const cardHor = document.createElement("div");
-                cardHor.classList.add("card");
-                cardHor.classList.add("horizontal");
-                cardHor.classList.add("grey");
-                cardHor.classList.add("darken-4");
-                cardHor.classList.add("hoverable");
-                const cardStacked = document.createElement("div");
-                cardStacked.classList.add("card-stacked");
-                const cardCon = document.createElement("div");
-                cardCon.classList.add("card-content");
-                const row = document.createElement("div");
-                row.classList.add("row");
-                row.classList.add("valign");
-                const col1 = document.createElement("div");
-                col1.classList.add("col");
-                col1.classList.add("l8");
-                col1.classList.add("s12");
-                const col2 = document.createElement("div");
-                col2.classList.add("col");
-                col2.classList.add("l4");
-                col2.classList.add("s12");
-                col2.classList.add("right-align");
-                const span = document.createElement("span");
-                span.classList.add("card-title");
-                span.classList.add("red-text");
-                span.classList.add("text-accent-4");
-                span.classList.add("monospace");
-                span.classList.add("bold");
-                span.classList.add("text-shadow");
-                const p = document.createElement("p");
-
-                span.innerHTML = data[i]["title"];
-                p.innerHTML = b64_to_utf8(data[i]["description"]);
-                col2.innerHTML = getDate(Number(data[i]["date"]));
-
-                col1.appendChild(span);
-                row.appendChild(col1);
-                row.appendChild(col2);
-                cardCon.appendChild(row);
-                cardCon.appendChild(p);
-                cardStacked.appendChild(cardCon);
-                cardHor.append(cardStacked);
-                sec.appendChild(cardHor);
-                updatesDiv.appendChild(sec);
-                
-                if (updatesDiv.childNodes.length == 5) $("#upPage").removeClass("disabled");
-
-              }
-            });
-        }
-
-        function b64_to_utf8( str ) {
-          return decodeURIComponent(escape(window.atob( str )));
-        }
-
-        function getDate(unix) {
-          const milliseconds = unix * 1000;
-
-          const dateObject = new Date(milliseconds);
-
-          const humanDateFormat = dateObject.toLocaleString(); //2019-12-9 10:30:15
-
-          var wDay = dateObject.toLocaleString("en-US", {weekday: "long"}); // Monday
-          var month = dateObject.toLocaleString("en-US", {month: "long"}); // December
-          var day = dateObject.toLocaleString("en-US", {day: "numeric"}); // 9
-          var year = dateObject.toLocaleString("en-US", {year: "numeric"}); // 2019
-          var hour = dateObject.toLocaleString("en-US", {hour: "numeric"}); // 10 AM
-          var minute = dateObject.toLocaleString("en-US", {minute: "numeric"}); // 30
-          var second = dateObject.toLocaleString("en-US", {second: "numeric"}); // 15
-
-          var time = (hour.slice(0, hour.indexOf(" ")).length == 1 ? "0" : "") + hour.slice(0, hour.indexOf(" ")) + ":" + (minute.toString().length == 1 ? "0" : "") +  minute + hour.slice(hour.indexOf(" "));
-
-          return wDay + ", " + month + " " + day + ", " + year + " - " + time;
-        }
-    
-        function checkFab() {
-          var instance = M.FloatingActionButton.getInstance(document.getElementById("fab"));
-          if (isInViewport(document.getElementById("dlLinks"))) {
-            document.getElementById("fab").classList.add("scale-out");
-          } else {
-            document.getElementById("fab").classList.remove("scale-out");
-          }
-        }
-
-        function isInViewport(element) {
-        const rect = element.getBoundingClientRect();
-        return (
-            rect.top >= 0 &&
-            rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-        );
-}
-    </script>
   </body>
 </html>
