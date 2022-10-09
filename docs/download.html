@@ -10,7 +10,7 @@
     </title>
     <link rel="icon" href="img/CBPLogo_Small.png">
   </head>
-  <body onscroll="checkFab();" class="grey darken-4 sans-serif white-text">
+  <body onscroll="checkFab();" class="grey darken-4 white-text">
 
     <div>
       <div class="navbar-fixed">
@@ -42,17 +42,17 @@
                   <tr>
                       <td>Latest (1.14.0 - 1.19.2)</td>
                       <td class="center" id="cbpLatestVersionLabel"></td>
-                      <td class="center"><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
+                      <td class="center"><a id="dlLatestVersion" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons">file_download</i></a></td>
                   </tr>
                   <tr>
                       <td>Legacy (1.8.0 - 1.13.1)</td>
                       <td class="center" id="cbpLegacyLabel"></td>
-                      <td class="center"><a id="dlLegacy" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons left">file_download</i></a></td>
+                      <td class="center"><a id="dlLegacy" class="btn-small waves-effect waves-light red darken-4 round-corners-mid" style="width:40%;"><i class="material-icons">file_download</i></a></td>
                   </tr>
                   <tr>
                       <td>Bungeecord</td>
                       <td class="center" id="cbpBungeeLabel">Coming soon!</td>
-                      <td class="center"><a id="dlBungee" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons left">file_download</i>0</a></td>
+                      <td class="center"><a id="dlBungee" class="btn-small waves-effect waves-light red darken-4 round-corners-mid disabled" style="width:40%;"><i class="material-icons">file_download</i></a></td>
                   </tr>
                   <tr>
                       <td>Snapshot (Latest Updates, Potentially Unstable)</td>
@@ -149,7 +149,6 @@
                   latestCbpVersion = d["name"];
                   document.getElementById("cbpLatestVersionLabel").innerHTML = latestCbpVersion;
                   document.getElementById("cbpLegacyLabel").innerHTML = "3.3.19.4";
-                  document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + d["downloads"];
               });
   
               fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/3vIYcCb/clicks?unit=month&units=-1', {
@@ -164,32 +163,16 @@
                   // document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData["link_clicks"][0]["clicks"];
               });
   
-              fetch('https://api-ssl.bitly.com/v4/bitlinks/bit.ly/35DSOp1/clicks?unit=month&units=-1', {
-                  headers: {  
-                      'Authorization': 'c61e27af39bf5b146b89e94e77e9b01d095ae832'
-                  }
-              })
-              .then(res =>
-                res.json())
-              .then(d => {
-                  dData188 = d;
-                  console.log(dData188);
-                  document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
-              });
-  
               loadPluginDetails();
               loadUpdates(1);
           });
   
           $("#dlLatestVersion").click(function () {
               window.open("https://bit.ly/custombanspluslatest");
-              document.getElementById("dlLatestVersion").innerHTML = "<i class='material-icons left'>file_download</i></a>" + (parseInt(data["downloads"]) + 1);
           });
   
           $("#dlLegacy").click(function () {
               window.open("https://bit.ly/35DSOp1");
-              dData188["link_clicks"][0]["clicks"] = parseInt(dData188["link_clicks"][0]["clicks"]) + 1;
-              document.getElementById("dlLegacy").innerHTML = "<i class='material-icons left'>file_download</i></a>" + dData188["link_clicks"][0]["clicks"];
           });
   
           $("#dlSnapshot").click(function () {
